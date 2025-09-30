@@ -13,18 +13,27 @@ const schema = a.schema({
       description: a.string(),
       owner: a.string().required(),
     })
-    .authorization((allow) => [allow.owner()]),
+    .authorization((allow) => [allow.owner()])
+    .secondaryIndexes((index) => [
+      index('owner').sortKeys(['createdAt']).queryField('notebooksByOwner'),
+    ]),
 
   Page: a
     .model({
       title: a.string().required(),
       content: a.string().required(),
+      searchableContent: a.string(), // For search functionality
       version: a.integer().required().default(1),
       parentPageId: a.id(),
       notebookId: a.id().required(),
       owner: a.string().required(),
     })
-    .authorization((allow) => [allow.owner()]),
+    .authorization((allow) => [allow.owner()])
+    .secondaryIndexes((index) => [
+      index('notebookId').sortKeys(['createdAt']).queryField('pagesByNotebook'),
+      index('parentPageId').sortKeys(['createdAt']).queryField('pagesByParent'),
+      index('owner').sortKeys(['updatedAt']).queryField('pagesByOwner'),
+    ]),
 
   PageVersion: a
     .model({
@@ -34,7 +43,11 @@ const schema = a.schema({
       version: a.integer().required(),
       owner: a.string().required(),
     })
-    .authorization((allow) => [allow.owner()]),
+    .authorization((allow) => [allow.owner()])
+    .secondaryIndexes((index) => [
+      index('pageId').sortKeys(['version']).queryField('versionsByPage'),
+      index('owner').sortKeys(['createdAt']).queryField('versionsByOwner'),
+    ]),
 
   Attachment: a
     .model({
@@ -45,7 +58,11 @@ const schema = a.schema({
       pageId: a.id().required(),
       owner: a.string().required(),
     })
-    .authorization((allow) => [allow.owner()]),
+    .authorization((allow) => [allow.owner()])
+    .secondaryIndexes((index) => [
+      index('pageId').sortKeys(['createdAt']).queryField('attachmentsByPage'),
+      index('owner').sortKeys(['createdAt']).queryField('attachmentsByOwner'),
+    ]),
 });
 
 export type Schema = ClientSchema<typeof schema>;

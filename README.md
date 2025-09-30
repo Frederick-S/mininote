@@ -43,17 +43,34 @@ A personal web-based note-taking application built with AWS Amplify that allows 
    npm run dev
    ```
 
-### AWS Amplify Setup
+### AWS Amplify Backend Setup
 
-1. Deploy the backend to AWS:
+**Important**: You need AWS credentials configured before deploying the backend.
+
+1. **Configure AWS Credentials** (first time only):
    ```bash
-   npm run amplify:sandbox
+   npm run backend:configure
+   ```
+   You'll need your AWS Access Key ID, Secret Access Key, and preferred region.
+
+2. **Deploy Backend Services**:
+   ```bash
+   npm run backend:setup
+   ```
+   This deploys Authentication, GraphQL API, Database, and File Storage.
+
+3. **Validate Backend Configuration**:
+   ```bash
+   npm run backend:validate
+   ```
+   Confirms all services are properly configured.
+
+4. **Start Development**:
+   ```bash
+   npm run dev
    ```
 
-2. Generate the configuration:
-   ```bash
-   npm run amplify:generate
-   ```
+For detailed setup instructions, see [BACKEND_SETUP.md](./BACKEND_SETUP.md).
 
 ## Project Structure
 
@@ -76,9 +93,17 @@ amplify/
 
 ## Available Scripts
 
+### Development
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm run lint` - Run ESLint
+
+### Backend Management
+- `npm run backend:configure` - Configure AWS credentials
+- `npm run backend:setup` - Deploy backend services
+- `npm run backend:validate` - Validate backend configuration
+
+### Amplify (Advanced)
 - `npm run amplify:sandbox` - Start Amplify sandbox environment
 - `npm run amplify:deploy` - Deploy to production
 - `npm run amplify:generate` - Generate Amplify configuration
