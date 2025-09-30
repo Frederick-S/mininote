@@ -22,6 +22,19 @@ const theme = createSystem(defaultConfig, {
         body: { value: 'Inter, system-ui, sans-serif' },
       },
     },
+    semanticTokens: {
+      colors: {
+        'button.brand.text': {
+          value: { base: 'white', _dark: 'white' }
+        },
+        'button.brand.bg': {
+          value: { base: '{colors.brand.500}', _dark: '{colors.brand.600}' }
+        },
+        'button.brand.bg.hover': {
+          value: { base: '{colors.brand.600}', _dark: '{colors.brand.700}' }
+        }
+      }
+    }
   },
 });
 
