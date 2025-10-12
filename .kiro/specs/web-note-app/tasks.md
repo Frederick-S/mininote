@@ -1,17 +1,18 @@
 # Implementation Plan
 
-- [x] 1. Set up project foundation and AWS Amplify configuration
+- [ ] 1. Set up project foundation and Supabase configuration
   - Initialize React TypeScript project with Vite
-  - Install and configure AWS Amplify CLI and libraries
-  - Set up Chakra UI theme and provider
+  - Install and configure Supabase client library
+  - Set up Tailwind CSS for styling
   - Configure project structure with proper folder organization
   - _Requirements: 1.1, 8.1, 9.1_
 
-- [x] 2. Configure AWS Amplify backend services
-  - Initialize Amplify backend with authentication (Cognito)
-  - Configure GraphQL API with AppSync
-  - Set up S3 storage for file uploads
-  - Deploy initial backend configuration
+- [ ] 2. Configure Supabase backend services
+  - Create Supabase project and obtain credentials
+  - Set up PostgreSQL database schema with tables
+  - Configure Row Level Security (RLS) policies
+  - Set up Supabase Storage bucket for file uploads
+  - Create database triggers for search and timestamps
   - _Requirements: 1.1, 1.2, 7.1, 9.1_
 
 - [ ] 3. Implement authentication system
@@ -24,24 +25,25 @@
 
 - [ ] 3.2 Set up authentication state management
   - Create Zustand store for authentication state
-  - Implement login/logout/signup actions
+  - Implement login/logout/signup actions with Supabase Auth
   - Add authentication persistence and session management
-  - Write unit tests for authentication logic
+  - Handle authentication errors and edge cases
   - _Requirements: 1.3, 1.5, 9.5_
 
-- [ ] 4. Create GraphQL schema and data models
-- [ ] 4.1 Define GraphQL schema for core entities
-  - Create User, Notebook, Page, PageVersion, and Attachment models
-  - Configure proper authorization rules and indexes
-  - Set up relationships between entities
-  - Generate TypeScript types from schema
+- [ ] 4. Create database access layer
+- [ ] 4.1 Set up Supabase client and types
+  - Configure Supabase client with environment variables
+  - Generate TypeScript types from database schema
+  - Create database helper functions and utilities
+  - Set up error handling for database operations
   - _Requirements: 2.1, 3.1, 3.2, 7.1, 9.1, 9.3, 11.1_
 
-- [ ] 4.2 Implement data access layer
-  - Create GraphQL queries, mutations, and subscriptions
-  - Build custom hooks for data operations
-  - Implement error handling for API calls
-  - Add loading states and optimistic updates
+- [ ] 4.2 Implement data access hooks
+  - Create custom hooks for notebook operations (CRUD)
+  - Build hooks for page operations with hierarchy support
+  - Implement hooks for page version management
+  - Add hooks for attachment operations
+  - Implement optimistic updates and caching
   - _Requirements: 2.2, 2.3, 3.3, 9.2, 9.3_
 
 - [ ] 5. Build core navigation and layout components
@@ -100,7 +102,7 @@
 - [ ] 8.1 Implement file upload functionality
   - Create FileUploader component with drag-and-drop
   - Add file type validation and size limits
-  - Implement progress tracking for uploads
+  - Implement progress tracking for uploads to Supabase Storage
   - Build file preview capabilities
   - _Requirements: 5.3, 5.6, 5.7, 7.1, 7.2_
 
@@ -114,7 +116,7 @@
 - [ ] 9. Implement page version control system
 - [ ] 9.1 Create version tracking functionality
   - Implement automatic version creation on page save
-  - Build version storage and retrieval system
+  - Build version storage using page_versions table
   - Add version numbering and metadata tracking
   - Create version cleanup and management
   - _Requirements: 11.1, 11.2_
@@ -128,10 +130,10 @@
 
 - [ ] 10. Implement search functionality
 - [ ] 10.1 Create search infrastructure
-  - Build search indexing for page content
-  - Implement DynamoDB-based search queries
+  - Implement PostgreSQL full-text search queries
   - Add search scope selection (current notebook vs all)
-  - Create search result ranking and filtering
+  - Create search result ranking using ts_rank
+  - Implement search highlighting in results
   - _Requirements: 6.1, 6.2, 6.3_
 
 - [ ] 10.2 Build search user interface
@@ -168,7 +170,7 @@
   - Create loading spinners and skeleton screens
   - Implement progress indicators for long operations
   - Add success/error toast notifications
-  - Build offline state handling and sync
+  - Build offline state handling
   - _Requirements: 8.3, 8.4_
 
 - [ ] 13. Implement responsive design and mobile optimization
@@ -190,7 +192,7 @@
 - [ ] 14.1 Create unit tests for components and utilities
   - Write tests for all React components
   - Test custom hooks and utility functions
-  - Mock AWS Amplify services for testing
+  - Mock Supabase client for testing
   - Achieve high test coverage for critical paths
   - _Requirements: All requirements validation_
 
@@ -206,12 +208,13 @@
   - Implement code splitting and lazy loading
   - Optimize bundle size and loading times
   - Add performance monitoring and metrics
-  - Optimize database queries and caching
+  - Optimize database queries and indexes
   - _Requirements: 8.1, 8.3_
 
 - [ ] 15.2 Prepare for production deployment
-  - Configure production Amplify environment
+  - Configure production environment variables
   - Set up CI/CD pipeline for automated deployment
   - Configure monitoring and logging
   - Perform security audit and testing
+  - Deploy to Vercel or Netlify
   - _Requirements: 9.1, 9.2, 9.3, 9.4_

@@ -2,20 +2,20 @@
 
 ## Overview
 
-The web note application is a personal note-taking system built on AWS Amplify that provides hierarchical organization of markdown-based content with rich editing capabilities. The application follows a serverless architecture using AWS services for authentication, data storage, file management, and search functionality.
+The web note application is a personal note-taking system built on Supabase that provides hierarchical organization of markdown-based content with rich editing capabilities. The application follows a modern serverless architecture using Supabase services for authentication, data storage, file management, and search functionality.
 
 ### Technology Stack
 
 - **Frontend Framework**: React with TypeScript
-- **UI Component Library**: Chakra UI (mature, accessible, and highly customizable)
+- **UI Styling**: Tailwind CSS (utility-first, highly customizable)
 - **Rich Text Editor**: TipTap (extensible, markdown-compatible editor with slash commands)
 - **State Management**: Zustand (lightweight, TypeScript-friendly)
-- **Backend**: AWS Amplify with GraphQL API
-- **Database**: Amazon DynamoDB
-- **File Storage**: Amazon S3 via Amplify Storage
-- **Authentication**: Amazon Cognito via Amplify Auth
-- **Search**: DynamoDB with text indexing and client-side filtering
-- **Deployment**: AWS Amplify Hosting
+- **Backend**: Supabase (PostgreSQL database with real-time capabilities)
+- **Database**: PostgreSQL via Supabase
+- **File Storage**: Supabase Storage
+- **Authentication**: Supabase Auth
+- **Search**: PostgreSQL Full-Text Search
+- **Deployment**: Vercel or Netlify
 
 ## Architecture
 
@@ -25,35 +25,30 @@ The web note application is a personal note-taking system built on AWS Amplify t
 graph TB
     subgraph "Client Layer"
         A[React App]
-        B[Chakra UI Components]
+        B[Tailwind CSS]
         C[TipTap Editor]
     end
     
-    subgraph "AWS Amplify"
-        D[Amplify Auth]
-        E[Amplify API - GraphQL]
-        F[Amplify Storage]
-        G[Amplify Hosting]
+    subgraph "Supabase Backend"
+        D[Supabase Auth]
+        E[PostgreSQL Database]
+        F[Supabase Storage]
+        G[Realtime Subscriptions]
+        H[Row Level Security]
     end
     
-    subgraph "AWS Services"
-        H[Amazon Cognito]
-        I[AWS AppSync]
-        J[Amazon DynamoDB]
-        K[Amazon S3]
-        L[DynamoDB Search Index]
+    subgraph "Deployment"
+        I[Vercel/Netlify]
     end
     
     A --> D
     A --> E
     A --> F
+    A --> G
     D --> H
-    E --> I
-    F --> K
-    I --> J
-    I --> J
-    J --> L
-    G --> A
+    E --> H
+    F --> H
+    I --> A
 ```
 
 ### Data Flow Architecture
@@ -62,24 +57,28 @@ graph TB
 sequenceDiagram
     participant U as User
     participant R as React App
-    participant A as Amplify API
-    participant D as DynamoDB
-    participant S as S3 Storage
+    participant S as Supabase Client
+    participant D as PostgreSQL
+    participant F as Storage
     
     U->>R: Create/Edit Note
-    R->>A: GraphQL Mutation
-    A->>D: Store Note Data
+    R->>S: Insert/Update Query
+    S->>D: Store Note Data
+    D-->>S: Return Data
+    S-->>R: Updated Note
     
     U->>R: Upload File
-    R->>S: Store File
-    S-->>R: Return File URL
-    R->>A: Update Note with File Reference
+    R->>S: Upload to Storage
+    S->>F: Store File
+    F-->>S: Return File URL
+    S-->>R: File URL
+    R->>S: Update Note with File Reference
     
     U->>R: Search Notes
-    R->>A: Search Query
-    A->>D: Query with Filters
-    D-->>A: Return Results
-    A-->>R: Formatted Results
+    R->>S: Full-Text Search Query
+    S->>D: Execute Search
+    D-->>S: Return Results
+    S-->>R: Formatted Results
 ```
 
 ## Components and Interfaces
@@ -107,70 +106,175 @@ sequenceDiagram
 
 #### 4. Search Components
 - **SearchBar**: Global search input with scope selection
-- **SearchResults**: Displays paginated search results with client-side highlighting
+- **SearchResults**: Displays paginated search results with highlighting
 - **SearchFilters**: Filters for search scope and content type
 
 ### API Interfaces
 
-#### GraphQL Schema
+#### Supabase Database Schema
 
-```graphql
-type User @model @auth(rules: [{allow: owner}]) {
-  id: ID!
-  email: String!
-  notebooks: [Notebook] @hasMany
-  createdAt: AWSDateTime!
-  updatedAt: AWSDateTime!
-}
+```sql
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-type Notebook @model @auth(rules: [{allow: owner}]) {
-  id: ID!
-  title: String!
-  description: String
-  pages: [Page] @hasMany
-  owner: String! @index(name: "byOwner")
-  createdAt: AWSDateTime!
-  updatedAt: AWSDateTime!
-}
+-- Enable full-text search
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
-type Page @model @auth(rules: [{allow: owner}]) {
-  id: ID!
-  title: String!
-  content: String!
-  version: Int!
-  parentPageId: String @index(name: "byParent")
-  notebookId: String! @index(name: "byNotebook")
-  notebook: Notebook @belongsTo
-  childPages: [Page] @hasMany(indexName: "byParent", fields: ["id"])
-  attachments: [Attachment] @hasMany
-  versions: [PageVersion] @hasMany
-  owner: String! @index(name: "byOwner")
-  createdAt: AWSDateTime!
-  updatedAt: AWSDateTime!
-}
+-- Users table (managed by Supabase Auth)
+-- auth.users is automatically created
 
-type PageVersion @model @auth(rules: [{allow: owner}]) {
-  id: ID!
-  pageId: String! @index(name: "byPage")
-  page: Page @belongsTo
-  title: String!
-  content: String!
-  version: Int!
-  owner: String! @index(name: "byOwner")
-  createdAt: AWSDateTime!
-}
+-- Notebooks table
+CREATE TABLE notebooks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title TEXT NOT NULL,
+  description TEXT,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
-type Attachment @model @auth(rules: [{allow: owner}]) {
-  id: ID!
-  filename: String!
-  fileType: String!
-  fileSize: Int!
-  s3Key: String!
-  pageId: String! @index(name: "byPage")
-  page: Page @belongsTo
-  owner: String! @index(name: "byOwner")
-  createdAt: AWSDateTime!
-}
+-- Pages table
+CREATE TABLE pages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL DEFAULT '',
+  version INTEGER NOT NULL DEFAULT 1,
+  parent_page_id UUID REFERENCES pages(id) ON DELETE CASCADE,
+  notebook_id UUID NOT NULL REFERENCES notebooks(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  searchable_content TSVECTOR,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Page versions table
+CREATE TABLE page_versions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  page_id UUID NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Attachments table
+CREATE TABLE attachments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  filename TEXT NOT NULL,
+  file_type TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  storage_path TEXT NOT NULL,
+  page_id UUID NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX idx_notebooks_user_id ON notebooks(user_id);
+CREATE INDEX idx_pages_notebook_id ON pages(notebook_id);
+CREATE INDEX idx_pages_parent_page_id ON pages(parent_page_id);
+CREATE INDEX idx_pages_user_id ON pages(user_id);
+CREATE INDEX idx_page_versions_page_id ON page_versions(page_id);
+CREATE INDEX idx_attachments_page_id ON attachments(page_id);
+
+-- Full-text search index
+CREATE INDEX idx_pages_searchable_content ON pages USING GIN(searchable_content);
+
+-- Trigger to update searchable_content
+CREATE OR REPLACE FUNCTION update_searchable_content()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.searchable_content := to_tsvector('english', COALESCE(NEW.title, '') || ' ' || COALESCE(NEW.content, ''));
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER pages_searchable_content_update
+  BEFORE INSERT OR UPDATE ON pages
+  FOR EACH ROW
+  EXECUTE FUNCTION update_searchable_content();
+
+-- Trigger to update updated_at
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER notebooks_updated_at
+  BEFORE UPDATE ON notebooks
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER pages_updated_at
+  BEFORE UPDATE ON pages
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+-- Row Level Security (RLS) Policies
+ALTER TABLE notebooks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE page_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attachments ENABLE ROW LEVEL SECURITY;
+
+-- Notebooks policies
+CREATE POLICY "Users can view their own notebooks"
+  ON notebooks FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create their own notebooks"
+  ON notebooks FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own notebooks"
+  ON notebooks FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own notebooks"
+  ON notebooks FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Pages policies
+CREATE POLICY "Users can view their own pages"
+  ON pages FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create their own pages"
+  ON pages FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own pages"
+  ON pages FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own pages"
+  ON pages FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Page versions policies
+CREATE POLICY "Users can view their own page versions"
+  ON page_versions FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create their own page versions"
+  ON page_versions FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Attachments policies
+CREATE POLICY "Users can view their own attachments"
+  ON attachments FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create their own attachments"
+  ON attachments FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own attachments"
+  ON attachments FOR DELETE
+  USING (auth.uid() = user_id);
 ```
 
 ### Component Interfaces
@@ -180,9 +284,9 @@ interface NotebookData {
   id: string;
   title: string;
   description?: string;
-  pageCount: number;
-  createdAt: string;
-  updatedAt: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface PageData {
@@ -190,31 +294,32 @@ interface PageData {
   title: string;
   content: string;
   version: number;
-  parentPageId?: string;
-  notebookId: string;
-  childPages?: PageData[];
-  attachments?: AttachmentData[];
-  versions?: PageVersionData[];
-  createdAt: string;
-  updatedAt: string;
+  parent_page_id?: string;
+  notebook_id: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface PageVersionData {
   id: string;
-  pageId: string;
+  page_id: string;
   title: string;
   content: string;
   version: number;
-  createdAt: string;
+  user_id: string;
+  created_at: string;
 }
 
 interface AttachmentData {
   id: string;
   filename: string;
-  fileType: string;
-  fileSize: number;
-  s3Key: string;
-  url: string;
+  file_type: string;
+  file_size: number;
+  storage_path: string;
+  page_id: string;
+  user_id: string;
+  created_at: string;
 }
 
 interface SearchResult {
@@ -222,74 +327,98 @@ interface SearchResult {
   id: string;
   title: string;
   content: string;
-  notebookTitle: string;
-  highlights: string[];
+  notebook_title: string;
+  rank: number;
 }
+```
+
+### Supabase Client Configuration
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+});
+
+// Database types
+export type Database = {
+  public: {
+    Tables: {
+      notebooks: {
+        Row: NotebookData;
+        Insert: Omit<NotebookData, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<NotebookData, 'id' | 'user_id' | 'created_at'>>;
+      };
+      pages: {
+        Row: PageData;
+        Insert: Omit<PageData, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<PageData, 'id' | 'user_id' | 'created_at'>>;
+      };
+      page_versions: {
+        Row: PageVersionData;
+        Insert: Omit<PageVersionData, 'id' | 'created_at'>;
+        Update: never;
+      };
+      attachments: {
+        Row: AttachmentData;
+        Insert: Omit<AttachmentData, 'id' | 'created_at'>;
+        Update: never;
+      };
+    };
+  };
+};
 ```
 
 ## Data Models
 
-### Database Design
-
-#### DynamoDB Tables Structure
-
-**Users Table**
-- Primary Key: `id` (User ID from Cognito)
-- Attributes: `email`, `createdAt`, `updatedAt`
-
-**Notebooks Table**
-- Primary Key: `id`
-- GSI: `owner-createdAt-index` for user's notebooks
-- Attributes: `title`, `description`, `owner`, `createdAt`, `updatedAt`
-
-**Pages Table**
-- Primary Key: `id`
-- GSI: `notebookId-createdAt-index` for notebook pages
-- GSI: `parentPageId-createdAt-index` for child pages
-- GSI: `owner-updatedAt-index` for user's recent pages
-- Attributes: `title`, `content`, `version`, `searchableContent`, `parentPageId`, `notebookId`, `owner`, `createdAt`, `updatedAt`
-
-**PageVersions Table**
-- Primary Key: `id`
-- GSI: `pageId-version-index` (pageId as PK, version as SK) for efficient version queries
-- GSI: `owner-createdAt-index` for user's version history
-- Attributes: `pageId`, `title`, `content`, `version`, `owner`, `createdAt`
-
-**Attachments Table**
-- Primary Key: `id`
-- GSI: `pageId-createdAt-index` for page attachments
-- GSI: `owner-createdAt-index` for user's files
-- Attributes: `filename`, `fileType`, `fileSize`, `s3Key`, `pageId`, `owner`, `createdAt`
-
-**DynamoDB Index Strategy**
-- **Notebooks**: `owner-createdAt-index` enables efficient listing of user's notebooks
-- **Pages**: Multiple GSIs support different access patterns:
-  - `notebookId-createdAt-index`: List pages in a notebook (sorted by creation)
-  - `parentPageId-createdAt-index`: Get child pages for hierarchy
-  - `owner-updatedAt-index`: Recent pages across all notebooks
-- **PageVersions**: `pageId-version-index` allows efficient version history retrieval
-- **Search Implementation**: 
-  - Use `owner-updatedAt-index` to scan user's pages for search
-  - Apply `contains` filter on `title` and `searchableContent`
-  - Use `notebookId-createdAt-index` for notebook-scoped search
-  - Client-side ranking and highlighting for better UX
-
-**Attachments Table**
-- Primary Key: `id`
-- GSI: `pageId-createdAt-index` for page attachments
-- Attributes: `filename`, `fileType`, `fileSize`, `s3Key`, `pageId`, `owner`, `createdAt`
-
-### File Storage Structure
+### Storage Structure
 
 ```
-s3://bucket-name/
-├── public/
-│   └── attachments/
-│       └── {userId}/
-│           └── {pageId}/
-│               ├── images/
-│               ├── documents/
-│               └── videos/
+supabase-storage/
+└── user-files/
+    └── {user_id}/
+        └── {page_id}/
+            ├── images/
+            ├── documents/
+            └── videos/
+```
+
+### Storage Policies
+
+```sql
+-- Storage bucket for user files
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('user-files', 'user-files', false);
+
+-- Storage policies
+CREATE POLICY "Users can upload their own files"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'user-files' AND
+    auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "Users can view their own files"
+  ON storage.objects FOR SELECT
+  USING (
+    bucket_id = 'user-files' AND
+    auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "Users can delete their own files"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'user-files' AND
+    auth.uid()::text = (storage.foldername(name))[1]
+  );
 ```
 
 ## Error Handling
@@ -345,6 +474,15 @@ class ErrorHandler {
     // Track error for analytics
     trackError(error);
   }
+  
+  static fromSupabaseError(error: any): AppError {
+    return {
+      code: error.code || 'UNKNOWN_ERROR',
+      message: error.message || 'An unexpected error occurred',
+      details: error.details,
+      retryable: error.code === 'PGRST301' || error.code === '08006'
+    };
+  }
 }
 ```
 
@@ -352,19 +490,19 @@ class ErrorHandler {
 
 - Network requests: Exponential backoff with max 3 retries
 - File uploads: Chunked upload with resume capability
-- Search queries: Immediate retry once, then fallback to title-only search
+- Search queries: Immediate retry once, then fallback to simpler query
 
 ## Testing Strategy
 
 ### Unit Testing
-- **Framework**: Jest + React Testing Library
+- **Framework**: Vitest + React Testing Library
 - **Coverage**: All utility functions, hooks, and components
-- **Mocking**: AWS Amplify services, external APIs
+- **Mocking**: Supabase client, external APIs
 
 ### Integration Testing
-- **API Testing**: GraphQL operations with test database
-- **File Upload Testing**: Mock S3 operations
-- **Authentication Flow**: Mock Cognito responses
+- **Database Testing**: Use Supabase local development environment
+- **File Upload Testing**: Mock storage operations
+- **Authentication Flow**: Mock Supabase Auth responses
 
 ### End-to-End Testing
 - **Framework**: Playwright
@@ -384,7 +522,7 @@ class ErrorHandler {
 
 ### Security Testing
 - **Authentication**: Token validation, session management
-- **Authorization**: User data isolation, API access controls
+- **Authorization**: Row Level Security validation
 - **File Security**: Upload validation, malware scanning
 - **Data Protection**: Encryption at rest and in transit
 
@@ -393,18 +531,58 @@ class ErrorHandler {
 ```typescript
 // Test configuration
 const testConfig = {
-  amplify: {
-    aws_project_region: 'us-east-1',
-    aws_cognito_region: 'us-east-1',
-    aws_user_pools_id: 'test-pool-id',
-    aws_user_pools_web_client_id: 'test-client-id',
-    aws_appsync_graphqlEndpoint: 'https://test-api.appsync-api.us-east-1.amazonaws.com/graphql',
-    aws_appsync_region: 'us-east-1',
-    aws_appsync_authenticationType: 'AMAZON_COGNITO_USER_POOLS',
-    aws_user_files_s3_bucket: 'test-storage-bucket',
-    aws_user_files_s3_bucket_region: 'us-east-1'
+  supabaseUrl: 'http://localhost:54321',
+  supabaseAnonKey: 'test-anon-key',
+};
+
+// Mock Supabase client for tests
+export const createMockSupabaseClient = () => ({
+  auth: {
+    signUp: vi.fn(),
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+    getSession: vi.fn(),
+  },
+  from: vi.fn(() => ({
+    select: vi.fn(),
+    insert: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  })),
+  storage: {
+    from: vi.fn(() => ({
+      upload: vi.fn(),
+      download: vi.fn(),
+      remove: vi.fn(),
+    })),
+  },
+});
+```
+
+## Search Implementation
+
+### Full-Text Search Query
+
+```typescript
+// Search across all user's pages
+const searchPages = async (query: string, notebookId?: string) => {
+  let queryBuilder = supabase
+    .from('pages')
+    .select('*, notebooks(title)')
+    .textSearch('searchable_content', query, {
+      type: 'websearch',
+      config: 'english'
+    });
+  
+  if (notebookId) {
+    queryBuilder = queryBuilder.eq('notebook_id', notebookId);
   }
+  
+  const { data, error } = await queryBuilder;
+  
+  if (error) throw error;
+  return data;
 };
 ```
 
-This design provides a comprehensive foundation for building the web note application with proper separation of concerns, scalable architecture, and robust error handling while leveraging AWS Amplify's capabilities for rapid development and deployment.
+This design provides a comprehensive foundation for building the web note application with Supabase, leveraging PostgreSQL's powerful features like full-text search, Row Level Security, and real-time capabilities while maintaining a clean and scalable architecture.

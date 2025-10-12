@@ -2,7 +2,7 @@
 
 ## Introduction
 
-A personal web-based note-taking application built with AWS Amplify that allows users to create and organize hierarchical notebooks with markdown-based pages. The application features user authentication, rich text editing with slash commands similar to Notion, file upload capabilities, and comprehensive search functionality across notebooks and pages.
+A personal web-based note-taking application built with Supabase that allows users to create and organize hierarchical notebooks with markdown-based pages. The application features user authentication, rich text editing with slash commands similar to Notion, file upload capabilities, and comprehensive search functionality across notebooks and pages.
 
 ## Requirements
 
@@ -68,7 +68,7 @@ A personal web-based note-taking application built with AWS Amplify that allows 
 2. WHEN a user selects a markdown format command THEN the system SHALL insert appropriate markdown syntax (headings, lists, tables, code blocks, quotes, etc.)
 3. WHEN a user selects an upload command THEN the system SHALL open a file picker for images, videos, or documents
 4. WHEN a user selects diagram commands THEN the system SHALL insert Mermaid chart templates or math expression blocks
-5. WHEN a user uploads a file THEN the system SHALL store it in AWS Amplify storage and insert appropriate markdown
+5. WHEN a user uploads a file THEN the system SHALL store it in Supabase Storage and insert appropriate markdown
 6. WHEN a user pastes an image or file THEN the system SHALL detect the content type and automatically upload it
 7. WHEN uploaded files are displayed THEN the system SHALL provide preview capabilities for common file types
 
@@ -90,7 +90,7 @@ A personal web-based note-taking application built with AWS Amplify that allows 
 
 #### Acceptance Criteria
 
-1. WHEN a user uploads a file THEN the system SHALL store it in AWS Amplify Storage with appropriate permissions
+1. WHEN a user uploads a file THEN the system SHALL store it in Supabase Storage with appropriate permissions
 2. WHEN displaying uploaded content THEN the system SHALL generate secure URLs for file access
 3. WHEN a file is no longer referenced THEN the system SHALL provide cleanup mechanisms to manage storage
 4. WHEN a user deletes a page with files THEN the system SHALL handle associated file cleanup appropriately
