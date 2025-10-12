@@ -1,109 +1,98 @@
 # Web Note App
 
-A personal web-based note-taking application built with AWS Amplify that allows users to create and organize hierarchical notebooks with markdown-based pages.
+A personal web-based note-taking application built with React, TypeScript, Supabase, and Tailwind CSS. Create and organize hierarchical notebooks with markdown-based pages, featuring rich text editing, file uploads, and comprehensive search functionality.
 
 ## Features
 
-- User authentication with AWS Cognito
-- Hierarchical notebook and page organization
-- Rich markdown editor with slash commands
-- File upload and management
-- Search functionality
-- Version control for pages
-- Export capabilities
+- 🔐 User authentication with Supabase Auth
+- 📚 Hierarchical notebook and page organization
+- ✍️ Rich markdown editor with TipTap
+- 🔍 Full-text search across notebooks and pages
+- 📎 File upload and management with Supabase Storage
+- 📝 Page version control and history
+- 📤 Export notebooks and pages as markdown files
+- 🎨 Modern, responsive UI with Tailwind CSS
 
-## Technology Stack
+## Tech Stack
 
-- **Frontend**: React with TypeScript, Vite
-- **UI Library**: Chakra UI
+- **Frontend**: React 19 + TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
+- **Backend**: Supabase (PostgreSQL, Auth, Storage)
 - **State Management**: Zustand
-- **Backend**: AWS Amplify Gen 2
-- **Database**: Amazon DynamoDB
-- **Storage**: Amazon S3
-- **Authentication**: Amazon Cognito
+- **Rich Text Editor**: TipTap (to be integrated)
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v18 or later)
-- npm or yarn
-- AWS CLI configured (for deployment)
+- Node.js 18+ and npm
+- A Supabase account and project
 
 ### Installation
 
-1. Clone the repository
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd web-note-app
+```
+
 2. Install dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
+3. Set up environment variables:
+```bash
+cp .env.example .env
+```
 
-### AWS Amplify Backend Setup
+Edit `.env` and add your Supabase credentials:
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-**Important**: You need AWS credentials configured before deploying the backend.
+4. Set up your Supabase database:
+   - Run the SQL schema from `.kiro/specs/web-note-app/design.md`
+   - Configure Row Level Security policies
+   - Set up Storage bucket for file uploads
 
-1. **Configure AWS Credentials** (first time only):
-   ```bash
-   npm run backend:configure
-   ```
-   You'll need your AWS Access Key ID, Secret Access Key, and preferred region.
-
-2. **Deploy Backend Services**:
-   ```bash
-   npm run backend:setup
-   ```
-   This deploys Authentication, GraphQL API, Database, and File Storage.
-
-3. **Validate Backend Configuration**:
-   ```bash
-   npm run backend:validate
-   ```
-   Confirms all services are properly configured.
-
-4. **Start Development**:
-   ```bash
-   npm run dev
-   ```
-
-For detailed setup instructions, see [BACKEND_SETUP.md](./BACKEND_SETUP.md).
+5. Start the development server:
+```bash
+npm run dev
+```
 
 ## Project Structure
 
+See [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) for detailed information about the folder organization.
+
 ```
 src/
-├── components/     # React components
-├── hooks/         # Custom React hooks
-├── store/         # Zustand state management
-├── theme/         # Chakra UI theme configuration
-├── types/         # TypeScript type definitions
-├── utils/         # Utility functions
-└── App.tsx        # Main application component
-
-amplify/
-├── auth/          # Authentication configuration
-├── data/          # GraphQL schema and data models
-├── storage/       # File storage configuration
-└── backend.ts     # Backend configuration
+├── components/     # React components organized by feature
+├── hooks/          # Custom React hooks
+├── lib/            # Library configurations (Supabase)
+├── store/          # Zustand state management
+├── types/          # TypeScript type definitions
+├── utils/          # Utility functions
+└── theme/          # Theme configuration
 ```
 
-## Available Scripts
+## Development
 
-### Development
+### Available Scripts
+
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
+- `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
 
-### Backend Management
-- `npm run backend:configure` - Configure AWS credentials
-- `npm run backend:setup` - Deploy backend services
-- `npm run backend:validate` - Validate backend configuration
+## Documentation
 
-### Amplify (Advanced)
-- `npm run amplify:sandbox` - Start Amplify sandbox environment
-- `npm run amplify:deploy` - Deploy to production
-- `npm run amplify:generate` - Generate Amplify configuration
+- [Requirements](./.kiro/specs/web-note-app/requirements.md)
+- [Design Document](./.kiro/specs/web-note-app/design.md)
+- [Implementation Tasks](./.kiro/specs/web-note-app/tasks.md)
+
+## License
+
+MIT
