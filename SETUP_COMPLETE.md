@@ -112,7 +112,10 @@ This task satisfies the following requirements from the spec:
 ## Ready for Next Task
 
 The project foundation is complete. You can now proceed to:
-- **Task 2**: Configure Supabase backend services
+- **Task 2**: Configure Supabase backend services ⬅️ **NEXT STEP**
+  - See [SUPABASE_SETUP_GUIDE.md](./SUPABASE_SETUP_GUIDE.md) for detailed instructions
+  - Use [SUPABASE_SETUP_CHECKLIST.md](./SUPABASE_SETUP_CHECKLIST.md) to track progress
+  - Run `npm run verify-supabase` to verify setup
 - **Task 3**: Implement authentication system
 
 The development environment is ready for building the Web Note App features!

@@ -53,10 +53,10 @@ VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-4. Set up your Supabase database:
-   - Run the SQL schema from `.kiro/specs/web-note-app/design.md`
-   - Configure Row Level Security policies
-   - Set up Storage bucket for file uploads
+4. Set up your Supabase backend:
+   - Follow the comprehensive guide in [SUPABASE_SETUP_GUIDE.md](./SUPABASE_SETUP_GUIDE.md)
+   - Or run the SQL script: Execute `supabase-setup.sql` in your Supabase SQL Editor
+   - Configure Storage bucket and policies as described in the guide
 
 5. Start the development server:
 ```bash

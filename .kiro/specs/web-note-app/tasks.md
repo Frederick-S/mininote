@@ -7,7 +7,7 @@
   - Configure project structure with proper folder organization
   - _Requirements: 1.1, 8.1, 9.1_
 
-- [ ] 2. Configure Supabase backend services
+- [x] 2. Configure Supabase backend services
   - Create Supabase project and obtain credentials
   - Set up PostgreSQL database schema with tables
   - Configure Row Level Security (RLS) policies
@@ -16,7 +16,7 @@
   - _Requirements: 1.1, 1.2, 7.1, 9.1_
 
 - [ ] 3. Implement authentication system
-- [x] 3.1 Create authentication components and forms
+- [ ] 3.1 Create authentication components and forms
   - Build SignUpForm component with email/password validation
   - Build LoginForm component with error handling
   - Create AuthGuard component for route protection
