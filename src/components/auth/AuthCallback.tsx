@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { ResetPasswordForm } from './ResetPasswordForm';
 
 interface AuthCallbackProps {
   onSuccess?: () => void;
@@ -12,7 +13,9 @@ interface AuthCallbackProps {
 
 export function AuthCallback({ onSuccess, onError }: AuthCallbackProps) {
   const { initialize } = useAuthStore();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'reset-password'>(
+    'loading'
+  );
   const [message, setMessage] = useState('Verifying your email...');
 
   useEffect(() => {
@@ -55,15 +58,9 @@ export function AuthCallback({ onSuccess, onError }: AuthCallbackProps) {
             throw new Error('Failed to establish session');
           }
         } else if (type === 'recovery') {
-          // Handle password reset
+          // Handle password reset - show reset form
           await initialize();
-          
-          setStatus('success');
-          setMessage('Password reset link verified. You can now set a new password.');
-          
-          if (onSuccess) {
-            setTimeout(onSuccess, 2000);
-          }
+          setStatus('reset-password');
         } else {
           throw new Error('Unknown verification type');
         }
@@ -91,6 +88,14 @@ export function AuthCallback({ onSuccess, onError }: AuthCallbackProps) {
       }
     }
   }, [onSuccess, onError, initialize]);
+
+  if (status === 'reset-password') {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <ResetPasswordForm onSuccess={onSuccess} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">

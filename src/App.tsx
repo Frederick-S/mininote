@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { SignUpForm, LoginForm, AuthGuard } from '@/components/auth';
+import { useState, useEffect } from 'react';
+import { SignUpForm, LoginForm, AuthGuard, ResetPasswordForm } from '@/components/auth';
 import { useAuthStore } from '@/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,18 @@ function App() {
   const [view, setView] = useState<'login' | 'signup'>('login');
   const [signUpEmail, setSignUpEmail] = useState<string>('');
   const [showVerification, setShowVerification] = useState(false);
+  const [isPasswordReset, setIsPasswordReset] = useState(false);
   const { user, signOut } = useAuthStore();
+
+  // Check if this is a password reset flow
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    
+    if (type === 'recovery') {
+      setIsPasswordReset(true);
+    }
+  }, []);
 
   const handleLogout = async () => {
     await signOut();
@@ -21,8 +32,8 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header - only show when logged in */}
-      {user && (
+      {/* Header - only show when logged in and not in password reset mode */}
+      {user && !isPasswordReset && (
         <header className="border-b">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
@@ -40,10 +51,22 @@ function App() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <AuthGuard
-          fallback={
-            <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
-              {showVerification ? (
+        {isPasswordReset ? (
+          <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+            <ResetPasswordForm
+              onSuccess={() => {
+                setIsPasswordReset(false);
+                setView('login');
+                // Clear the hash from URL
+                window.history.replaceState(null, '', window.location.pathname);
+              }}
+            />
+          </div>
+        ) : (
+          <AuthGuard
+            fallback={
+              <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+                {showVerification ? (
                 <Card className="w-full max-w-md">
                   <CardContent className="pt-6">
                     <div className="text-center space-y-4">
@@ -91,11 +114,11 @@ function App() {
                   onSuccess={handleSignUpSuccess}
                   onSwitchToLogin={() => setView('login')}
                 />
-              )}
-            </div>
-          }
-        >
-          <div className="max-w-4xl mx-auto space-y-6">
+                )}
+              </div>
+            }
+          >
+            <div className="max-w-4xl mx-auto space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="text-3xl">Welcome to Web Note App! 🎉</CardTitle>
@@ -161,8 +184,9 @@ function App() {
                 </ul>
               </CardContent>
             </Card>
-          </div>
-        </AuthGuard>
+            </div>
+          </AuthGuard>
+        )}
       </main>
     </div>
   );
