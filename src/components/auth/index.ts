@@ -3,3 +3,4 @@ export { LoginForm } from './LoginForm';
 export { AuthGuard } from './AuthGuard';
 export { AuthCallback } from './AuthCallback';
 export { ResetPasswordForm } from './ResetPasswordForm';
+export { ChangePasswordForm } from './ChangePasswordForm';

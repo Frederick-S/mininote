@@ -1,14 +1,30 @@
 import { useState, useEffect } from 'react';
-import { SignUpForm, LoginForm, AuthGuard, ResetPasswordForm } from '@/components/auth';
+import {
+  SignUpForm,
+  LoginForm,
+  AuthGuard,
+  ResetPasswordForm,
+  ChangePasswordForm,
+} from '@/components/auth';
 import { useAuthStore } from '@/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown, KeyRound, LogOut } from 'lucide-react';
 
 function App() {
   const [view, setView] = useState<'login' | 'signup'>('login');
   const [signUpEmail, setSignUpEmail] = useState<string>('');
   const [showVerification, setShowVerification] = useState(false);
   const [isPasswordReset, setIsPasswordReset] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const { user, signOut } = useAuthStore();
 
   // Check if this is a password reset flow
@@ -38,12 +54,27 @@ function App() {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold">Web Note App</h1>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">{user.email}</span>
-                <Button variant="destructive" size="sm" onClick={handleLogout}>
-                  Logout
-                </Button>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="gap-2">
+                    <span className="text-sm">{user.email}</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowChangePassword(true)}>
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    Change Password
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
@@ -118,15 +149,23 @@ function App() {
               </div>
             }
           >
-            <div className="max-w-4xl mx-auto space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-3xl">Welcome to Web Note App! 🎉</CardTitle>
-                <CardDescription className="text-lg">
-                  You are now authenticated and ready to start taking notes.
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            {showChangePassword ? (
+              <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+                <ChangePasswordForm
+                  onSuccess={() => setShowChangePassword(false)}
+                  onCancel={() => setShowChangePassword(false)}
+                />
+              </div>
+            ) : (
+              <div className="max-w-4xl mx-auto space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-3xl">Welcome to Web Note App! 🎉</CardTitle>
+                    <CardDescription className="text-lg">
+                      You are now authenticated and ready to start taking notes.
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
 
             <Card className="border-green-200 bg-green-50">
               <CardHeader>
@@ -184,7 +223,8 @@ function App() {
                 </ul>
               </CardContent>
             </Card>
-            </div>
+              </div>
+            )}
           </AuthGuard>
         )}
       </main>
