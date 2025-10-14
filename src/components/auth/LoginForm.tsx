@@ -19,7 +19,10 @@ import { Mail } from 'lucide-react';
 import type { AuthError } from '@/types';
 
 const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email({ message: 'Please enter a valid email address' }),
   password: z.string().min(1, 'Password is required'),
 });
 
@@ -45,26 +48,19 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
     },
   });
 
-  const resetForm = useForm<{ email: string }>({
-    resolver: zodResolver(z.object({ email: z.string().email() })),
-    defaultValues: { email: '' },
-  });
-
   const onSubmit = async (values: LoginFormValues) => {
     setError(null);
     clearError();
 
     try {
       await signIn(values.email, values.password);
-      
+
       if (onSuccess) {
         onSuccess();
       }
     } catch (err) {
-      // Error is already handled by the store
-      // We can optionally set local error state if needed
-      const authErr = err as AuthError;
-      setError(authErr.message || authError || 'An error occurred during login');
+      // Error is handled by the store and will be displayed via authError
+      // No need to set local error
     }
   };
 
@@ -124,45 +120,49 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
           <CardDescription>Enter your email to receive a reset link</CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...resetForm}>
-            <form onSubmit={resetForm.handleSubmit(onResetSubmit)} className="space-y-4">
-              <FormField
-                control={resetForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="you@example.com"
-                        {...field}
-                        disabled={resetForm.formState.isSubmitting}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              onResetSubmit({ email: resetEmail });
+            }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <label htmlFor="reset-email" className="text-sm font-medium">
+                Email
+              </label>
+              <Input
+                id="reset-email"
+                type="email"
+                placeholder="you@example.com"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                required
               />
+            </div>
 
-              {error && (
-                <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-                  {error}
-                </div>
-              )}
+            {error && (
+              <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+                {error}
+              </div>
+            )}
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={resetForm.formState.isSubmitting}
-              >
-                {resetForm.formState.isSubmitting ? 'Sending...' : 'Send Reset Link'}
-              </Button>
-            </form>
-          </Form>
+            <Button type="submit" className="w-full">
+              Send Reset Link
+            </Button>
+          </form>
 
           <p className="mt-4 text-sm text-center text-muted-foreground">
-            <Button variant="link" className="p-0 h-auto" onClick={() => setShowForgotPassword(false)}>
+            <Button
+              variant="link"
+              className="p-0 h-auto"
+              onClick={() => {
+                setError(null);
+                clearError();
+                setResetEmail('');
+                setShowForgotPassword(false);
+              }}
+            >
               Back to Login
             </Button>
           </p>
@@ -188,8 +188,9 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input
-                      type="email"
+                      type="text"
                       placeholder="you@example.com"
+                      autoComplete="email"
                       {...field}
                       disabled={form.formState.isSubmitting}
                     />
@@ -223,15 +224,20 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
                 type="button"
                 variant="link"
                 className="p-0 h-auto text-sm"
-                onClick={() => setShowForgotPassword(true)}
+                onClick={() => {
+                  setError(null);
+                  clearError();
+                  setResetEmail('');
+                  setShowForgotPassword(true);
+                }}
               >
                 Forgot password?
               </Button>
             </div>
 
-            {error && (
+            {(error || authError) && (
               <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-                {error}
+                {error || authError}
               </div>
             )}
 
