@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,6 +42,7 @@ interface SignUpFormProps {
 }
 
 export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
+  const { signUp, error: authError, clearError } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
   const [email, setEmail] = useState('');
@@ -57,30 +58,20 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
 
   const onSubmit = async (values: SignUpFormValues) => {
     setError(null);
+    clearError();
     setEmail(values.email);
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (signUpError) {
-        throw signUpError;
-      }
-
-      if (data.user) {
-        setVerificationSent(true);
-        if (onSuccess) {
-          onSuccess();
-        }
+      await signUp(values.email, values.password);
+      
+      setVerificationSent(true);
+      if (onSuccess) {
+        onSuccess();
       }
     } catch (err) {
-      const authError = err as AuthError;
-      setError(authError.message || 'An error occurred during sign up');
+      // Error is already handled by the store
+      const authErr = err as AuthError;
+      setError(authErr.message || authError || 'An error occurred during sign up');
     }
   };
 

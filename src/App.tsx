@@ -1,33 +1,15 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useState } from 'react';
 import { SignUpForm, LoginForm, AuthGuard } from '@/components/auth';
+import { useAuthStore } from '@/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { User } from '@supabase/supabase-js';
 
 function App() {
   const [view, setView] = useState<'login' | 'signup'>('login');
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    // Check current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const { user, signOut } = useAuthStore();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
+    await signOut();
   };
 
   return (
@@ -112,11 +94,7 @@ function App() {
                   </p>
                   <p>
                     <strong>Email Verified:</strong>{' '}
-                    {user?.email_confirmed_at ? 'Yes' : 'Pending'}
-                  </p>
-                  <p>
-                    <strong>Created:</strong>{' '}
-                    {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+                    {user?.emailVerified ? 'Yes' : 'Pending'}
                   </p>
                 </div>
               </CardContent>
@@ -131,7 +109,7 @@ function App() {
                   The authentication foundation is ready. Next tasks will implement:
                 </p>
                 <ul className="list-disc list-inside text-sm text-purple-800 space-y-1 ml-4">
-                  <li>Authentication state management with Zustand</li>
+                  <li>✅ Authentication state management with Zustand (Complete!)</li>
                   <li>Database access layer for notebooks and pages</li>
                   <li>Navigation and layout components with tree view</li>
                   <li>Rich markdown editor with TipTap</li>

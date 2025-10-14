@@ -7,7 +7,10 @@ The web note application is a personal note-taking system built on Supabase that
 ### Technology Stack
 
 - **Frontend Framework**: React with TypeScript
-- **UI Styling**: Tailwind CSS (utility-first, highly customizable)
+- **UI Component Library**: shadcn/ui (Radix UI primitives + Tailwind CSS)
+- **UI Styling**: Tailwind CSS v3 (utility-first, highly customizable)
+- **Form Management**: React Hook Form + Zod validation
+- **Icons**: Lucide React
 - **Rich Text Editor**: TipTap (extensible, markdown-compatible editor with slash commands)
 - **State Management**: Zustand (lightweight, TypeScript-friendly)
 - **Backend**: Supabase (PostgreSQL database with real-time capabilities)
@@ -81,33 +84,98 @@ sequenceDiagram
     S-->>R: Formatted Results
 ```
 
+## UI Framework: shadcn/ui
+
+### Why shadcn/ui?
+
+The application uses **shadcn/ui** as the component library, which provides:
+
+1. **Accessibility First**: Built on Radix UI primitives with WCAG 2.1 AA compliance
+2. **Tree Component Support**: Collapsible and Accordion components perfect for hierarchical notebook structure
+3. **Customizable**: Copy-paste approach means you own the code and can customize freely
+4. **Type-Safe**: Full TypeScript support with React Hook Form + Zod validation
+5. **Tailwind Integration**: Works seamlessly with Tailwind CSS (already in stack)
+6. **No Package Lock-in**: Components are copied to your project, not installed as dependencies
+7. **Rich Component Set**: 50+ components including forms, dialogs, dropdowns, tables, etc.
+8. **Icon Library**: Includes Lucide React with 1000+ icons
+9. **Active Community**: Well-maintained with excellent documentation
+
+### Component Architecture
+
+```
+src/
+├── components/
+│   ├── ui/                    # shadcn/ui base components (owned by project)
+│   │   ├── button.tsx
+│   │   ├── card.tsx
+│   │   ├── form.tsx
+│   │   ├── input.tsx
+│   │   ├── label.tsx
+│   │   ├── collapsible.tsx   # For tree structure
+│   │   ├── dialog.tsx         # For modals
+│   │   ├── command.tsx        # For search/slash commands
+│   │   └── ...
+│   ├── auth/                  # Authentication components
+│   ├── notebook/              # Notebook-specific components
+│   ├── editor/                # Editor components
+│   └── search/                # Search components
+└── lib/
+    └── utils.ts               # cn() helper for class merging
+```
+
+### Form Validation Pattern
+
+All forms use React Hook Form + Zod for type-safe validation:
+
+```typescript
+const schema = z.object({
+  email: z.string().email('Invalid email'),
+  password: z.string().min(8, 'Too short'),
+});
+
+const form = useForm({
+  resolver: zodResolver(schema),
+  defaultValues: { email: '', password: '' },
+});
+```
+
 ## Components and Interfaces
 
 ### Core Components
 
-#### 1. Authentication Components
-- **LoginForm**: Handles user sign-in with email/password
-- **SignUpForm**: Manages user registration and email verification
-- **AuthGuard**: Protects routes requiring authentication
+#### 1. Authentication Components (Built with shadcn/ui)
+- **LoginForm**: Handles user sign-in with email/password using React Hook Form + Zod validation
+- **SignUpForm**: Manages user registration and email verification with form validation
+- **AuthGuard**: Protects routes requiring authentication with loading states
+- **AuthCallback**: Handles email verification and password reset callbacks
+- **UI Components**: Card, Button, Input, Label, Form from shadcn/ui
 
-#### 2. Navigation Components
-- **Sidebar**: Displays notebook tree and navigation
-- **NotebookTree**: Hierarchical display of notebooks and pages
-- **Breadcrumb**: Shows current location in hierarchy
+#### 2. Navigation Components (shadcn/ui)
+- **Sidebar**: Displays notebook tree and navigation using Collapsible components
+- **NotebookTree**: Hierarchical display of notebooks and pages with Collapsible/Accordion
+- **Breadcrumb**: Shows current location in hierarchy using shadcn/ui Breadcrumb
+- **ScrollArea**: Scrollable container for long lists
 
-#### 3. Content Management Components
-- **NotebookList**: Grid/list view of user's notebooks
-- **NotebookCreator**: Form for creating new notebooks
+#### 3. Content Management Components (shadcn/ui)
+- **NotebookList**: Grid/list view of user's notebooks using Card components
+- **NotebookCreator**: Form for creating new notebooks with Dialog and Form components
 - **PageEditor**: Rich markdown editor with TipTap
-- **SlashCommandMenu**: Dropdown menu for slash commands
-- **FileUploader**: Drag-and-drop file upload interface
-- **VersionHistory**: List of page versions with timestamps
+- **SlashCommandMenu**: Dropdown menu for slash commands using Command component
+- **FileUploader**: Drag-and-drop file upload interface with Progress component
+- **VersionHistory**: List of page versions with timestamps using Table component
 - **VersionComparison**: Side-by-side diff view of two versions
 
-#### 4. Search Components
-- **SearchBar**: Global search input with scope selection
-- **SearchResults**: Displays paginated search results with highlighting
-- **SearchFilters**: Filters for search scope and content type
+#### 4. Search Components (shadcn/ui)
+- **SearchBar**: Global search input with scope selection using Command component
+- **SearchResults**: Displays paginated search results with highlighting using Card components
+- **SearchFilters**: Filters for search scope and content type using Select and Checkbox
+
+#### 5. UI Foundation (shadcn/ui Components)
+- **Base Components**: Button, Input, Label, Card, Form, Dialog, Dropdown, Popover
+- **Layout Components**: Collapsible, Accordion, ScrollArea, Separator, Resizable
+- **Feedback Components**: Toast, Progress, Skeleton, Badge, Alert
+- **Data Components**: Table, Tabs, Tooltip
+- **Icons**: Lucide React icon library (1000+ icons)
 
 ### API Interfaces
 

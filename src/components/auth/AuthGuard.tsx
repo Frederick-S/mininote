@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useEffect } from 'react';
+import { useAuthStore } from '@/store';
 import { Loader2 } from 'lucide-react';
-import type { User } from '@supabase/supabase-js';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -10,58 +9,23 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children, fallback, onUnauthenticated }: AuthGuardProps) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isLoading, isInitialized, isAuthenticated, initialize } = useAuthStore();
 
   useEffect(() => {
-    // Check current session
-    const checkSession = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+    // Initialize auth state on mount
+    if (!isInitialized) {
+      initialize();
+    }
+  }, [isInitialized, initialize]);
 
-        if (session?.user) {
-          setUser(session.user);
-        } else {
-          setUser(null);
-          if (onUnauthenticated) {
-            onUnauthenticated();
-          }
-        }
-      } catch (error) {
-        console.error('Error checking session:', error);
-        setUser(null);
-        if (onUnauthenticated) {
-          onUnauthenticated();
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  useEffect(() => {
+    // Call onUnauthenticated when user is not authenticated
+    if (isInitialized && !isAuthenticated && onUnauthenticated) {
+      onUnauthenticated();
+    }
+  }, [isInitialized, isAuthenticated, onUnauthenticated]);
 
-    checkSession();
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-      } else {
-        setUser(null);
-        if (onUnauthenticated) {
-          onUnauthenticated();
-        }
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [onUnauthenticated]);
-
-  if (isLoading) {
+  if (!isInitialized || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
@@ -72,7 +36,7 @@ export function AuthGuard({ children, fallback, onUnauthenticated }: AuthGuardPr
     );
   }
 
-  if (!user) {
+  if (!user || !isAuthenticated) {
     return fallback ? <>{fallback}</> : null;
   }
 

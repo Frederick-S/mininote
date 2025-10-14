@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
@@ -10,6 +11,7 @@ interface AuthCallbackProps {
 }
 
 export function AuthCallback({ onSuccess, onError }: AuthCallbackProps) {
+  const { initialize } = useAuthStore();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Verifying your email...');
 
@@ -40,6 +42,9 @@ export function AuthCallback({ onSuccess, onError }: AuthCallbackProps) {
             setStatus('success');
             setMessage('Email verified successfully! Redirecting...');
             
+            // Reinitialize auth store with new session
+            await initialize();
+            
             // Clear the hash from URL
             window.history.replaceState(null, '', window.location.pathname);
             
@@ -51,6 +56,8 @@ export function AuthCallback({ onSuccess, onError }: AuthCallbackProps) {
           }
         } else if (type === 'recovery') {
           // Handle password reset
+          await initialize();
+          
           setStatus('success');
           setMessage('Password reset link verified. You can now set a new password.');
           
@@ -83,7 +90,7 @@ export function AuthCallback({ onSuccess, onError }: AuthCallbackProps) {
         onError('Invalid verification link');
       }
     }
-  }, [onSuccess, onError]);
+  }, [onSuccess, onError, initialize]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">

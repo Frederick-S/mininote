@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +31,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
+  const { signIn, error: authError, clearError } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
@@ -50,33 +52,19 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
 
   const onSubmit = async (values: LoginFormValues) => {
     setError(null);
+    clearError();
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
-      });
-
-      if (signInError) {
-        throw signInError;
-      }
-
-      if (data.user) {
-        if (onSuccess) {
-          onSuccess();
-        }
+      await signIn(values.email, values.password);
+      
+      if (onSuccess) {
+        onSuccess();
       }
     } catch (err) {
-      const authError = err as AuthError;
-
-      // Provide user-friendly error messages
-      if (authError.message?.includes('Invalid login credentials')) {
-        setError('Invalid email or password. Please try again.');
-      } else if (authError.message?.includes('Email not confirmed')) {
-        setError('Please verify your email address before logging in.');
-      } else {
-        setError(authError.message || 'An error occurred during login');
-      }
+      // Error is already handled by the store
+      // We can optionally set local error state if needed
+      const authErr = err as AuthError;
+      setError(authErr.message || authError || 'An error occurred during login');
     }
   };
 
