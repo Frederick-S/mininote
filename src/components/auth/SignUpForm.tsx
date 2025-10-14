@@ -37,7 +37,7 @@ const signUpSchema = z
 type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 interface SignUpFormProps {
-  onSuccess?: () => void;
+  onSuccess?: (email: string) => void;
   onSwitchToLogin?: () => void;
 }
 
@@ -63,10 +63,13 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
 
     try {
       await signUp(values.email, values.password);
-      
+
+      // Show verification message
       setVerificationSent(true);
+
+      // Notify parent component
       if (onSuccess) {
-        onSuccess();
+        onSuccess(values.email);
       }
     } catch (err) {
       // Error is already handled by the store

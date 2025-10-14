@@ -104,7 +104,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -115,11 +115,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (error) throw error;
       
       // Note: User won't be fully authenticated until email is verified
-      const user = mapSupabaseUser(data.user);
-      
+      // Don't set user state until email is verified
       set({
-        user,
-        isAuthenticated: false, // Not authenticated until email verified
+        user: null,
+        isAuthenticated: false,
         isLoading: false,
       });
     } catch (error) {

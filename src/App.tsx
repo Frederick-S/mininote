@@ -6,44 +6,89 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 function App() {
   const [view, setView] = useState<'login' | 'signup'>('login');
+  const [signUpEmail, setSignUpEmail] = useState<string>('');
+  const [showVerification, setShowVerification] = useState(false);
   const { user, signOut } = useAuthStore();
 
   const handleLogout = async () => {
     await signOut();
   };
 
+  const handleSignUpSuccess = (email: string) => {
+    setSignUpEmail(email);
+    setShowVerification(true);
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Web Note App</h1>
-            {user && (
+      {/* Header - only show when logged in */}
+      {user && (
+        <header className="border-b">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-bold">Web Note App</h1>
               <div className="flex items-center gap-4">
                 <span className="text-sm text-muted-foreground">{user.email}</span>
                 <Button variant="destructive" size="sm" onClick={handleLogout}>
                   Logout
                 </Button>
               </div>
-            )}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <AuthGuard
           fallback={
             <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
-              {view === 'login' ? (
+              {showVerification ? (
+                <Card className="w-full max-w-md">
+                  <CardContent className="pt-6">
+                    <div className="text-center space-y-4">
+                      <div className="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center">
+                        <svg
+                          className="w-10 h-10 text-green-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                      <div className="space-y-2">
+                        <h2 className="text-2xl font-bold">Check Your Email</h2>
+                        <p className="text-muted-foreground">
+                          We've sent a verification link to <strong>{signUpEmail}</strong>. Please
+                          check your email and click the link to verify your account.
+                        </p>
+                      </div>
+                      <Button
+                        variant="link"
+                        onClick={() => {
+                          setShowVerification(false);
+                          setView('login');
+                        }}
+                      >
+                        Return to Login
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : view === 'login' ? (
                 <LoginForm
                   onSuccess={() => console.log('Login successful')}
                   onSwitchToSignUp={() => setView('signup')}
                 />
               ) : (
                 <SignUpForm
-                  onSuccess={() => console.log('Sign up successful')}
+                  onSuccess={handleSignUpSuccess}
                   onSwitchToLogin={() => setView('login')}
                 />
               )}
