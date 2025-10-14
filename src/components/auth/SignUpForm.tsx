@@ -46,6 +46,7 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
   const [email, setEmail] = useState('');
+  const [isSigningUp, setIsSigningUp] = useState(false);
 
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -60,6 +61,7 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
     setError(null);
     clearError();
     setEmail(values.email);
+    setIsSigningUp(true);
 
     try {
       await signUp(values.email, values.password);
@@ -75,6 +77,8 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
       // Error is already handled by the store
       const authErr = err as AuthError;
       setError(authErr.message || authError || 'An error occurred during sign up');
+    } finally {
+      setIsSigningUp(false);
     }
   };
 
@@ -122,7 +126,7 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
                       type="email"
                       placeholder="you@example.com"
                       {...field}
-                      disabled={form.formState.isSubmitting}
+                      disabled={isSigningUp}
                     />
                   </FormControl>
                   <FormMessage />
@@ -141,7 +145,7 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
                       type="password"
                       placeholder="••••••••"
                       {...field}
-                      disabled={form.formState.isSubmitting}
+                      disabled={isSigningUp}
                     />
                   </FormControl>
                   <FormDescription>
@@ -163,7 +167,7 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
                       type="password"
                       placeholder="••••••••"
                       {...field}
-                      disabled={form.formState.isSubmitting}
+                      disabled={isSigningUp}
                     />
                   </FormControl>
                   <FormMessage />
@@ -177,8 +181,8 @@ export function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormProps) {
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? 'Creating Account...' : 'Sign Up'}
+            <Button type="submit" className="w-full" disabled={isSigningUp}>
+              {isSigningUp ? 'Creating Account...' : 'Sign Up'}
             </Button>
           </form>
         </Form>

@@ -39,6 +39,8 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -51,6 +53,7 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
   const onSubmit = async (values: LoginFormValues) => {
     setError(null);
     clearError();
+    setIsLoggingIn(true);
 
     try {
       await signIn(values.email, values.password);
@@ -61,12 +64,15 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
     } catch (err) {
       // Error is handled by the store and will be displayed via authError
       // No need to set local error
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
   const onResetSubmit = async (values: { email: string }) => {
     setError(null);
     setResetEmail(values.email);
+    setIsResetting(true);
 
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(values.email, {
@@ -81,6 +87,8 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
     } catch (err) {
       const authError = err as AuthError;
       setError(authError.message || 'An error occurred while sending reset email');
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -137,6 +145,7 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
                 placeholder="you@example.com"
                 value={resetEmail}
                 onChange={(e) => setResetEmail(e.target.value)}
+                disabled={isResetting}
                 required
               />
             </div>
@@ -147,8 +156,8 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
               </div>
             )}
 
-            <Button type="submit" className="w-full">
-              Send Reset Link
+            <Button type="submit" className="w-full" disabled={isResetting}>
+              {isResetting ? 'Sending...' : 'Send Reset Link'}
             </Button>
           </form>
 
@@ -192,7 +201,7 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
                       placeholder="you@example.com"
                       autoComplete="email"
                       {...field}
-                      disabled={form.formState.isSubmitting}
+                      disabled={isLoggingIn}
                     />
                   </FormControl>
                   <FormMessage />
@@ -211,7 +220,7 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
                       type="password"
                       placeholder="••••••••"
                       {...field}
-                      disabled={form.formState.isSubmitting}
+                      disabled={isLoggingIn}
                     />
                   </FormControl>
                   <FormMessage />
@@ -241,8 +250,8 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? 'Logging in...' : 'Log In'}
+            <Button type="submit" className="w-full" disabled={isLoggingIn}>
+              {isLoggingIn ? 'Logging in...' : 'Log In'}
             </Button>
           </form>
         </Form>

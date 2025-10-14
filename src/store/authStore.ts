@@ -102,7 +102,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   // Sign up new user
   signUp: async (email: string, password: string) => {
     try {
-      set({ isLoading: true, error: null });
+      set({ error: null });
       
       const { error } = await supabase.auth.signUp({
         email,
@@ -119,12 +119,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({
         user: null,
         isAuthenticated: false,
-        isLoading: false,
       });
     } catch (error) {
       console.error('Sign up error:', error);
       set({
-        isLoading: false,
         error: formatAuthError(error),
       });
       throw error;
@@ -134,7 +132,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   // Sign in existing user
   signIn: async (email: string, password: string) => {
     try {
-      set({ isLoading: true, error: null });
+      set({ error: null });
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -148,12 +146,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({
         user,
         isAuthenticated: !!user,
-        isLoading: false,
       });
     } catch (error) {
       console.error('Sign in error:', error);
       set({
-        isLoading: false,
         error: formatAuthError(error),
       });
       throw error;
@@ -163,7 +159,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   // Sign out current user
   signOut: async () => {
     try {
-      set({ isLoading: true, error: null });
+      set({ error: null });
       
       const { error } = await supabase.auth.signOut();
       
@@ -172,12 +168,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({
         user: null,
         isAuthenticated: false,
-        isLoading: false,
       });
     } catch (error) {
       console.error('Sign out error:', error);
       set({
-        isLoading: false,
         error: formatAuthError(error),
       });
       throw error;
