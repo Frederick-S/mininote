@@ -1,4 +1,4 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
 // Environment variable validation
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -68,28 +68,44 @@ export type Database = {
         Row: NotebookData;
         Insert: Omit<NotebookData, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<NotebookData, 'id' | 'user_id' | 'created_at'>>;
+        Relationships: [];
       };
       pages: {
         Row: PageData;
         Insert: Omit<PageData, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<PageData, 'id' | 'user_id' | 'created_at'>>;
+        Relationships: [];
       };
       page_versions: {
         Row: PageVersionData;
         Insert: Omit<PageVersionData, 'id' | 'created_at'>;
         Update: never;
+        Relationships: [];
       };
       attachments: {
         Row: AttachmentData;
         Insert: Omit<AttachmentData, 'id' | 'created_at'>;
         Update: never;
+        Relationships: [];
       };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 };
 
 // Create typed Supabase client
-export const supabase: SupabaseClient<Database> = createClient<Database>(
+export const supabase = createClient<Database>(
   supabaseUrl,
   supabaseAnonKey,
   {
