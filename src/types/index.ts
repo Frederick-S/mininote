@@ -30,3 +30,6 @@ export interface AuthError {
 
 // Re-export for convenience
 export type { AuthState as AuthStateType };
+
+// Database types
+export * from './database';
