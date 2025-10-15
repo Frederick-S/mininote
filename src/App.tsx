@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import {
   SignUpForm,
   LoginForm,
@@ -8,7 +9,7 @@ import {
 } from '@/components/auth';
 import { useAuthStore } from '@/store';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ChevronDown, KeyRound, LogOut } from 'lucide-react';
+import {
+  NotebooksPage,
+  NotebookCreatePage,
+  NotebookEditPage,
+  NotebookViewPage,
+} from '@/pages';
 
 function App() {
   const [view, setView] = useState<'login' | 'signup'>('login');
@@ -47,41 +54,42 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header - only show when logged in and not in password reset mode */}
-      {user && !isPasswordReset && (
-        <header className="border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold">Web Note App</h1>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="gap-2">
-                    <span className="text-sm">{user.email}</span>
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowChangePassword(true)}>
-                    <KeyRound className="mr-2 h-4 w-4" />
-                    Change Password
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+    <BrowserRouter>
+      <div className="min-h-screen bg-background">
+        {/* Header - only show when logged in and not in password reset mode */}
+        {user && !isPasswordReset && (
+          <header className="border-b">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold">Web Note App</h1>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="gap-2">
+                      <span className="text-sm">{user.email}</span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setShowChangePassword(true)}>
+                      <KeyRound className="mr-2 h-4 w-4" />
+                      Change Password
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
-          </div>
-        </header>
-      )}
+          </header>
+        )}
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+        {/* Main Content */}
+        <main className="container mx-auto px-4 py-8">
         {isPasswordReset ? (
           <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
             <ResetPasswordForm
@@ -157,99 +165,20 @@ function App() {
                 />
               </div>
             ) : (
-              <div className="max-w-4xl mx-auto space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-3xl">Welcome to Web Note App! 🎉</CardTitle>
-                    <CardDescription className="text-lg">
-                      You are now authenticated and ready to start taking notes.
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-
-            <Card className="border-green-200 bg-green-50">
-              <CardHeader>
-                <CardTitle className="text-green-900">✅ Authentication System Complete</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-green-800 mb-2">
-                  The authentication system is now fully functional with:
-                </p>
-                <ul className="list-disc list-inside text-sm text-green-800 space-y-1 ml-4">
-                  <li>Sign up with email/password validation</li>
-                  <li>Login with error handling</li>
-                  <li>Email verification flow</li>
-                  <li>Password reset functionality</li>
-                  <li>Route protection with AuthGuard</li>
-                  <li>Session management and persistence</li>
-                  <li>Built with shadcn/ui components</li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card className="border-green-200 bg-green-50">
-              <CardHeader>
-                <CardTitle className="text-green-900">✅ Navigation & Layout Complete</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-green-800 mb-2">
-                  The navigation and layout system is now ready with:
-                </p>
-                <ul className="list-disc list-inside text-sm text-green-800 space-y-1 ml-4">
-                  <li>Responsive Sidebar with notebook tree</li>
-                  <li>Hierarchical NotebookTree with collapsible pages</li>
-                  <li>Breadcrumb navigation component</li>
-                  <li>Mobile-friendly navigation drawer</li>
-                  <li>AppLayout component for consistent page structure</li>
-                  <li>Built with shadcn/ui (Collapsible, Sheet, ScrollArea, Breadcrumb)</li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card className="border-blue-200 bg-blue-50">
-              <CardHeader>
-                <CardTitle className="text-blue-900">📝 User Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm text-blue-800 space-y-1">
-                  <p>
-                    <strong>Email:</strong> {user?.email}
-                  </p>
-                  <p>
-                    <strong>User ID:</strong> {user?.id}
-                  </p>
-                  <p>
-                    <strong>Email Verified:</strong>{' '}
-                    {user?.emailVerified ? 'Yes' : 'Pending'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-purple-200 bg-purple-50">
-              <CardHeader>
-                <CardTitle className="text-purple-900">🚀 Next Steps</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-purple-800 mb-2">
-                  The authentication and navigation foundation is ready. Next tasks will implement:
-                </p>
-                <ul className="list-disc list-inside text-sm text-purple-800 space-y-1 ml-4">
-                  <li>✅ Authentication state management with Zustand (Complete!)</li>
-                  <li>✅ Database access layer for notebooks and pages (Complete!)</li>
-                  <li>✅ Navigation and layout components with tree view (Complete!)</li>
-                  <li>Notebook management interface (create, edit, delete)</li>
-                  <li>Page management and hierarchy</li>
-                  <li>Rich markdown editor with TipTap</li>
-                </ul>
-              </CardContent>
-            </Card>
-              </div>
+              <Routes>
+                <Route path="/" element={<Navigate to="/notebooks" replace />} />
+                <Route path="/notebooks" element={<NotebooksPage />} />
+                <Route path="/notebooks/new" element={<NotebookCreatePage />} />
+                <Route path="/notebooks/:notebookId" element={<NotebookViewPage />} />
+                <Route path="/notebooks/:notebookId/edit" element={<NotebookEditPage />} />
+                <Route path="*" element={<Navigate to="/notebooks" replace />} />
+              </Routes>
             )}
           </AuthGuard>
         )}
       </main>
     </div>
+    </BrowserRouter>
   );
 }
 
