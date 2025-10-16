@@ -82,13 +82,62 @@ import { PageMoveDialog } from '@/components/page';
 />
 ```
 
+### PageTree
+A hierarchical tree component for displaying and managing pages with drag-and-drop support.
+
+**Features:**
+- Nested tree structure with unlimited depth
+- Expand/collapse functionality for parent pages
+- Drag-and-drop page reorganization
+- Page selection and navigation
+- Visual feedback for selected pages
+- Prevents circular references during drag-and-drop
+- Responsive and accessible
+
+**Usage:**
+```tsx
+import { PageTree } from '@/components/page';
+import { usePagesHierarchy, useMovePage } from '@/hooks/usePages';
+
+function MyComponent({ notebookId }) {
+  const { data: pages } = usePagesHierarchy(notebookId);
+  const movePage = useMovePage();
+  const [selectedPageId, setSelectedPageId] = useState<string>();
+
+  const handlePageMove = async (pageId: string, newParentId: string | null) => {
+    await movePage.mutateAsync({
+      id: pageId,
+      parent_page_id: newParentId,
+    });
+  };
+
+  return (
+    <PageTree
+      pages={pages || []}
+      selectedPageId={selectedPageId}
+      onPageSelect={setSelectedPageId}
+      onPageMove={handlePageMove}
+      className="h-[600px]"
+    />
+  );
+}
+```
+
+**Props:**
+- `pages`: Array of `PageWithChildren` objects (hierarchical structure)
+- `selectedPageId`: ID of currently selected page (optional)
+- `onPageSelect`: Callback when a page is clicked
+- `onPageMove`: Callback when a page is dragged and dropped
+- `className`: Additional CSS classes
+
 ## Requirements Covered
 
 These components implement the following requirements:
 
 - **Requirement 3.1**: Page creation with parent page selection
-- **Requirement 3.2**: Hierarchical page structure support
-- **Requirement 3.4**: Page reorganization (move functionality)
+- **Requirement 3.2**: Hierarchical page structure support (PageTree)
+- **Requirement 3.3**: Nested tree structure display (PageTree)
+- **Requirement 3.4**: Page reorganization with drag-and-drop (PageTree, PageMoveDialog)
 - **Requirement 3.5**: Page deletion with child page handling
 
 ## Data Flow

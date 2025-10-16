@@ -69,7 +69,7 @@
   - Create page move/reorganization functionality
   - _Requirements: 3.1, 3.2, 3.4, 3.5_
 
-- [ ] 6.2 Build hierarchical page display
+- [x] 6.2 Build hierarchical page display
   - Create nested tree structure for pages
   - Implement expand/collapse functionality
   - Add drag-and-drop for page reorganization
