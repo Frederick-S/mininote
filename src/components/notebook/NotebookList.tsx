@@ -100,12 +100,6 @@ export function NotebookList({ onSelectNotebook }: NotebookListProps) {
               Create your first notebook to start organizing your notes.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button onClick={() => navigate('/notebooks/new')} className="w-full">
-              <BookOpen className="mr-2 h-4 w-4" />
-              Create Notebook
-            </Button>
-          </CardContent>
         </Card>
       </div>
     );

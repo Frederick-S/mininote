@@ -89,7 +89,6 @@ export function handleDatabaseError(error: PostgrestError | Error | null): Datab
         );
       
       case '42501': // Insufficient privilege
-      case 'PGRST301':
         return new DatabaseError(
           'You do not have permission to perform this action.',
           DatabaseErrorCode.PERMISSION_DENIED,
