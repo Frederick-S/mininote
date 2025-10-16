@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { TipTapEditor } from '@/components/editor/TipTapEditor';
 import type { PageData } from '@/types/database';
 
 const pageEditSchema = z.object({
@@ -31,6 +31,7 @@ interface PageEditorProps {
 
 export function PageEditor({ page, onSuccess }: PageEditorProps) {
   const updatePage = useUpdatePage();
+  const [editorContent, setEditorContent] = useState(page.content);
 
   const form = useForm<PageEditFormData>({
     resolver: zodResolver(pageEditSchema),
@@ -40,13 +41,19 @@ export function PageEditor({ page, onSuccess }: PageEditorProps) {
     },
   });
 
-  // Update form when page changes
+  // Update form and editor when page changes
   useEffect(() => {
     form.reset({
       title: page.title,
       content: page.content,
     });
+    setEditorContent(page.content);
   }, [page.id, page.title, page.content, form]);
+
+  // Update form content when editor changes
+  useEffect(() => {
+    form.setValue('content', editorContent, { shouldDirty: true });
+  }, [editorContent, form]);
 
   const handleSubmit = async (data: PageEditFormData) => {
     try {
@@ -89,14 +96,14 @@ export function PageEditor({ page, onSuccess }: PageEditorProps) {
           <FormField
             control={form.control}
             name="content"
-            render={({ field }) => (
+            render={() => (
               <FormItem>
                 <FormLabel>Content</FormLabel>
                 <FormControl>
-                  <Textarea
-                    placeholder="Write your content here..."
-                    className="min-h-[400px] font-mono"
-                    {...field}
+                  <TipTapEditor
+                    content={editorContent}
+                    onChange={setEditorContent}
+                    placeholder="Start writing your page content..."
                   />
                 </FormControl>
                 <FormMessage />

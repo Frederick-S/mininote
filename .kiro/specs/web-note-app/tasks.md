@@ -61,7 +61,7 @@
   - Implement notebook selection and navigation
   - _Requirements: 2.1, 2.2, 2.3, 2.5_
 
-- [ ] 6. Implement page management and hierarchy
+- [x] 6. Implement page management and hierarchy
 - [x] 6.1 Create page CRUD operations
   - Build page creation form with parent page selection
   - Implement page editing interface
@@ -77,7 +77,7 @@
   - _Requirements: 3.2, 3.3, 3.4_
 
 - [ ] 7. Implement rich markdown editor with TipTap
-- [ ] 7.1 Set up TipTap editor with basic functionality
+- [x] 7.1 Set up TipTap editor with basic functionality
   - Install and configure TipTap with React
   - Create PageEditor component with markdown support
   - Implement real-time preview or WYSIWYG mode
