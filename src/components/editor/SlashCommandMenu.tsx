@@ -189,19 +189,73 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
 
   const allItems = props.items || defaultItems;
 
-  // Filter items based on query
-  const items = allItems.filter((item) => {
-    const query = (props.query || '').toLowerCase();
-    if (!query) return true;
+  // Fuzzy search with scoring
+  const getMatchScore = (text: string, query: string): number => {
+    const textLower = text.toLowerCase();
+    const queryLower = query.toLowerCase();
+    
+    // Exact match at start (highest priority)
+    if (textLower.startsWith(queryLower)) return 1000;
+    
+    // Exact substring match
+    const exactIndex = textLower.indexOf(queryLower);
+    if (exactIndex !== -1) return 500 - exactIndex;
+    
+    // Word boundary match (e.g., "math" matches "Math Formula")
+    const words = textLower.split(/\s+/);
+    for (const word of words) {
+      if (word.startsWith(queryLower)) return 400;
+      if (word.includes(queryLower)) return 300;
+    }
+    
+    // Fuzzy match: check if all query characters appear in order with limited gaps
+    let queryIndex = 0;
+    let lastMatchIndex = -1;
+    let gaps = 0;
+    const maxGapAllowed = 2; // Maximum gap between characters
+    
+    for (let i = 0; i < textLower.length && queryIndex < queryLower.length; i++) {
+      if (textLower[i] === queryLower[queryIndex]) {
+        if (lastMatchIndex !== -1) {
+          const gap = i - lastMatchIndex - 1;
+          if (gap > maxGapAllowed) {
+            // Gap too large, reject this match
+            return 0;
+          }
+          gaps += gap;
+        }
+        lastMatchIndex = i;
+        queryIndex++;
+      }
+    }
+    
+    // If all characters matched with acceptable gaps
+    if (queryIndex === queryLower.length && gaps <= maxGapAllowed * queryLower.length) {
+      return 100 - gaps;
+    }
+    
+    return 0;
+  };
 
-    const titleMatch = item.title.toLowerCase().includes(query);
-    const descriptionMatch = item.description.toLowerCase().includes(query);
-    const searchTermsMatch = item.searchTerms?.some((term) =>
-      term.toLowerCase().includes(query)
-    );
+  // Filter and sort items based on query with fuzzy search
+  const items = allItems
+    .map((item) => {
+      const query = (props.query || '').toLowerCase();
+      if (!query) return { item, score: 1000 };
 
-    return titleMatch || descriptionMatch || searchTermsMatch;
-  });
+      const titleScore = getMatchScore(item.title, query);
+      const descriptionScore = getMatchScore(item.description, query) * 0.5;
+      const searchTermsScore = Math.max(
+        0,
+        ...(item.searchTerms?.map((term) => getMatchScore(term, query)) || [])
+      ) * 0.8;
+
+      const maxScore = Math.max(titleScore, descriptionScore, searchTermsScore);
+      return { item, score: maxScore };
+    })
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(({ item }) => item);
 
   const selectItem = (index: number) => {
     const item = items[index];

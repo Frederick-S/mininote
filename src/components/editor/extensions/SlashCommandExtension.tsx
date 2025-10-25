@@ -56,7 +56,12 @@ export const SlashCommandExtension = Extension.create({
                         },
 
                         onUpdate(props: any) {
-                            component.updateProps(props);
+                            component.updateProps({
+                                query: props.query,
+                                editor: props.editor,
+                                range: props.range,
+                                command: props.command,
+                            });
 
                             if (!props.clientRect) {
                                 return;
