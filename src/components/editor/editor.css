@@ -349,6 +349,27 @@
 /* Slash command menu styles */
 .slash-command-menu {
   z-index: 50;
+  border: none !important;
+}
+
+/* Remove border from tippy container */
+.tippy-box {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tippy-content {
+  padding: 0 !important;
+}
+
+.tippy-arrow {
+  display: none !important;
+}
+
+.tippy-box[data-theme~='dark'] {
+  background: transparent !important;
+  border: none !important;
 }
 
 .slash-command-menu::-webkit-scrollbar {
