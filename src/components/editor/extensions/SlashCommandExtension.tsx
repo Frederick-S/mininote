@@ -31,7 +31,12 @@ export const SlashCommandExtension = Extension.create({
                     return {
                         onStart: (props: any) => {
                             component = new ReactRenderer(SlashCommandMenu, {
-                                props,
+                                props: {
+                                    query: props.query,
+                                    editor: props.editor,
+                                    range: props.range,
+                                    command: props.command,
+                                },
                                 editor: props.editor,
                             });
 

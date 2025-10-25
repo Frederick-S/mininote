@@ -14,20 +14,38 @@ import {
   CheckSquare,
   Minus,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface CommandItem {
   title: string;
   description: string;
-  icon: React.ReactNode;
+  icon: string;
   command: (props: any) => void;
   searchTerms?: string[];
 }
+
+const iconMap: Record<string, LucideIcon> = {
+  Type,
+  Heading1,
+  Heading2,
+  Heading3,
+  List,
+  ListOrdered,
+  CheckSquare,
+  Quote,
+  Code2,
+  Minus,
+  Table,
+  Sigma,
+  Network,
+};
 
 interface SlashCommandMenuProps {
   items?: CommandItem[];
   command: (item: CommandItem) => void;
   editor: any;
   range: any;
+  query?: string;
 }
 
 export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) => {
@@ -37,7 +55,7 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
     {
       title: 'Text',
       description: 'Start writing with plain text',
-      icon: <Type className="h-4 w-4" />,
+      icon: 'Type',
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
       },
@@ -46,7 +64,7 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
     {
       title: 'Heading 1',
       description: 'Large section heading',
-      icon: <Heading1 className="h-4 w-4" />,
+      icon: 'Heading1',
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).toggleHeading({ level: 1 }).run();
       },
@@ -55,7 +73,7 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
     {
       title: 'Heading 2',
       description: 'Medium section heading',
-      icon: <Heading2 className="h-4 w-4" />,
+      icon: 'Heading2',
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).toggleHeading({ level: 2 }).run();
       },
@@ -64,7 +82,7 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
     {
       title: 'Heading 3',
       description: 'Small section heading',
-      icon: <Heading3 className="h-4 w-4" />,
+      icon: 'Heading3',
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).toggleHeading({ level: 3 }).run();
       },
@@ -73,7 +91,7 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
     {
       title: 'Bullet List',
       description: 'Create a simple bullet list',
-      icon: <List className="h-4 w-4" />,
+      icon: 'List',
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).toggleBulletList().run();
       },
@@ -82,7 +100,7 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
     {
       title: 'Numbered List',
       description: 'Create a numbered list',
-      icon: <ListOrdered className="h-4 w-4" />,
+      icon: 'ListOrdered',
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).toggleOrderedList().run();
       },
@@ -91,7 +109,7 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
     {
       title: 'Task List',
       description: 'Create a task list with checkboxes',
-      icon: <CheckSquare className="h-4 w-4" />,
+      icon: 'CheckSquare',
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).toggleTaskList().run();
       },
@@ -100,7 +118,7 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
     {
       title: 'Quote',
       description: 'Insert a blockquote',
-      icon: <Quote className="h-4 w-4" />,
+      icon: 'Quote',
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).toggleBlockquote().run();
       },
@@ -109,7 +127,7 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
     {
       title: 'Code Block',
       description: 'Insert a code block with syntax highlighting',
-      icon: <Code2 className="h-4 w-4" />,
+      icon: 'Code2',
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
       },
@@ -118,7 +136,7 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
     {
       title: 'Divider',
       description: 'Insert a horizontal divider',
-      icon: <Minus className="h-4 w-4" />,
+      icon: 'Minus',
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).setHorizontalRule().run();
       },
@@ -127,7 +145,7 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
     {
       title: 'Table',
       description: 'Insert a table',
-      icon: <Table className="h-4 w-4" />,
+      icon: 'Table',
       command: ({ editor, range }) => {
         editor
           .chain()
@@ -141,7 +159,7 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
     {
       title: 'Math Formula',
       description: 'Insert a mathematical expression',
-      icon: <Sigma className="h-4 w-4" />,
+      icon: 'Sigma',
       command: ({ editor, range }) => {
         const formula = window.prompt('Enter LaTeX formula (e.g., E = mc^2):');
         if (formula) {
@@ -154,7 +172,7 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
     {
       title: 'Mermaid Diagram',
       description: 'Insert a Mermaid diagram',
-      icon: <Network className="h-4 w-4" />,
+      icon: 'Network',
       command: ({ editor, range }) => {
         const diagram = window.prompt(
           'Enter Mermaid diagram code:',
@@ -169,7 +187,21 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
     },
   ];
 
-  const items = props.items || defaultItems;
+  const allItems = props.items || defaultItems;
+
+  // Filter items based on query
+  const items = allItems.filter((item) => {
+    const query = (props.query || '').toLowerCase();
+    if (!query) return true;
+
+    const titleMatch = item.title.toLowerCase().includes(query);
+    const descriptionMatch = item.description.toLowerCase().includes(query);
+    const searchTermsMatch = item.searchTerms?.some((term) =>
+      term.toLowerCase().includes(query)
+    );
+
+    return titleMatch || descriptionMatch || searchTermsMatch;
+  });
 
   const selectItem = (index: number) => {
     const item = items[index];
@@ -218,24 +250,30 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
   return (
     <div className="slash-command-menu bg-popover border rounded-lg shadow-lg p-2 max-h-[400px] overflow-y-auto min-w-[300px]">
       {items.length > 0 ? (
-        items.map((item, index) => (
-          <button
-            key={index}
-            className={`w-full flex items-start gap-3 px-3 py-2 rounded-md text-left transition-colors ${
-              index === selectedIndex
+        items.map((item, index) => {
+          const Icon = iconMap[item.icon];
+          return (
+            <button
+              key={index}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors ${index === selectedIndex
                 ? 'bg-accent text-accent-foreground'
                 : 'hover:bg-accent/50'
-            }`}
-            onClick={() => selectItem(index)}
-            onMouseEnter={() => setSelectedIndex(index)}
-          >
-            <div className="mt-0.5 flex-shrink-0">{item.icon}</div>
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm">{item.title}</div>
-              <div className="text-xs text-muted-foreground">{item.description}</div>
-            </div>
-          </button>
-        ))
+                }`}
+              onClick={() => selectItem(index)}
+              onMouseEnter={() => setSelectedIndex(index)}
+            >
+              {Icon ? (
+                <div className="flex-shrink-0 w-4 h-4 text-foreground">
+                  <Icon className="w-full h-full" size={16} />
+                </div>
+              ) : null}
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm text-foreground">{item.title}</div>
+                <div className="text-xs text-muted-foreground">{item.description}</div>
+              </div>
+            </button>
+          );
+        })
       ) : (
         <div className="px-3 py-2 text-sm text-muted-foreground">No results</div>
       )}
