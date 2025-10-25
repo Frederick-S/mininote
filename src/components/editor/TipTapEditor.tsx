@@ -3,6 +3,14 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Typography from '@tiptap/extension-typography';
 import Link from '@tiptap/extension-link';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { common, createLowlight } from 'lowlight';
+import { MathExtension } from './extensions/MathExtension';
+import { MermaidExtension } from './extensions/MermaidExtension';
 import {
   Bold,
   Italic,
@@ -18,10 +26,17 @@ import {
   Redo,
   Link2,
   Code2,
+  Table as TableIcon,
+  Plus,
+  Minus,
+  Sigma,
+  Network,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import './editor.css';
+
+const lowlight = createLowlight(common);
 
 interface TipTapEditorProps {
   content: string;
@@ -42,6 +57,7 @@ export function TipTapEditor({
         heading: {
           levels: [1, 2, 3],
         },
+        codeBlock: false, // Disable default code block to use CodeBlockLowlight
       }),
       Placeholder.configure({
         placeholder,
@@ -53,6 +69,31 @@ export function TipTapEditor({
           class: 'text-primary underline underline-offset-4',
         },
       }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'border-collapse table-auto w-full my-4',
+        },
+      }),
+      TableRow,
+      TableHeader.configure({
+        HTMLAttributes: {
+          class: 'border border-gray-300 bg-gray-100 px-4 py-2 font-semibold text-left',
+        },
+      }),
+      TableCell.configure({
+        HTMLAttributes: {
+          class: 'border border-gray-300 px-4 py-2',
+        },
+      }),
+      CodeBlockLowlight.configure({
+        lowlight,
+        HTMLAttributes: {
+          class: 'code-block-lowlight',
+        },
+      }),
+      MathExtension,
+      MermaidExtension,
     ],
     content,
     editable,
@@ -215,6 +256,88 @@ export function TipTapEditor({
           title="Add Link"
         >
           <Link2 className="h-4 w-4" />
+        </ToolbarButton>
+
+        <Separator orientation="vertical" className="h-8" />
+
+        {/* Table */}
+        <ToolbarButton
+          onClick={() =>
+            editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+          }
+          isActive={editor.isActive('table')}
+          title="Insert Table"
+        >
+          <TableIcon className="h-4 w-4" />
+        </ToolbarButton>
+
+        {editor.isActive('table') && (
+          <>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().addColumnBefore().run()}
+              title="Add Column Before"
+            >
+              <Plus className="h-4 w-4" />
+            </ToolbarButton>
+
+            <ToolbarButton
+              onClick={() => editor.chain().focus().addRowBefore().run()}
+              title="Add Row Before"
+            >
+              <Plus className="h-4 w-4" />
+            </ToolbarButton>
+
+            <ToolbarButton
+              onClick={() => editor.chain().focus().deleteColumn().run()}
+              title="Delete Column"
+            >
+              <Minus className="h-4 w-4" />
+            </ToolbarButton>
+
+            <ToolbarButton
+              onClick={() => editor.chain().focus().deleteRow().run()}
+              title="Delete Row"
+            >
+              <Minus className="h-4 w-4" />
+            </ToolbarButton>
+
+            <ToolbarButton
+              onClick={() => editor.chain().focus().deleteTable().run()}
+              title="Delete Table"
+            >
+              <TableIcon className="h-4 w-4" />
+            </ToolbarButton>
+          </>
+        )}
+
+        <Separator orientation="vertical" className="h-8" />
+
+        {/* Advanced Content */}
+        <ToolbarButton
+          onClick={() => {
+            const formula = window.prompt('Enter LaTeX formula (e.g., E = mc^2):');
+            if (formula) {
+              (editor.commands as any).insertMath({ content: formula });
+            }
+          }}
+          title="Insert Math Formula"
+        >
+          <Sigma className="h-4 w-4" />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onClick={() => {
+            const diagram = window.prompt(
+              'Enter Mermaid diagram code:',
+              'graph TD\n  A[Start] --> B[End]'
+            );
+            if (diagram) {
+              (editor.commands as any).insertMermaid(diagram);
+            }
+          }}
+          title="Insert Mermaid Diagram"
+        >
+          <Network className="h-4 w-4" />
         </ToolbarButton>
 
         <Separator orientation="vertical" className="h-8" />

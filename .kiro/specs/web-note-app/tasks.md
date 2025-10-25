@@ -84,7 +84,7 @@
   - Add basic formatting toolbar
   - _Requirements: 4.1, 4.2, 4.7, 4.8_
 
-- [ ] 7.2 Add advanced editor features
+- [x] 7.2 Add advanced editor features
   - Implement table creation and editing (add/delete rows/columns)
   - Add code block support with syntax highlighting
   - Integrate MathJax for mathematical expressions

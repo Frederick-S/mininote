@@ -85,6 +85,87 @@
   padding: 0;
 }
 
+/* Code Block with Syntax Highlighting */
+.ProseMirror .code-block-lowlight {
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border-radius: 0.5em;
+  padding: 1em;
+  margin: 1em 0;
+  overflow-x: auto;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+}
+
+.ProseMirror .code-block-lowlight code {
+  background: none;
+  color: inherit;
+  font-size: 0.9em;
+  padding: 0;
+}
+
+/* Syntax highlighting colors */
+.hljs-comment,
+.hljs-quote {
+  color: #6a9955;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-type {
+  color: #569cd6;
+}
+
+.hljs-string,
+.hljs-title,
+.hljs-name {
+  color: #ce9178;
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet {
+  color: #b5cea8;
+}
+
+.hljs-function,
+.hljs-class {
+  color: #dcdcaa;
+}
+
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable {
+  color: #9cdcfe;
+}
+
+.hljs-built_in,
+.hljs-builtin-name {
+  color: #4ec9b0;
+}
+
+.hljs-tag,
+.hljs-meta {
+  color: #808080;
+}
+
+.hljs-deletion {
+  color: #f44747;
+}
+
+.hljs-addition {
+  color: #89d185;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
 /* Blockquote */
 .ProseMirror blockquote {
   border-left: 4px solid #e5e7eb;
@@ -148,4 +229,85 @@
 /* Strike through */
 .ProseMirror s {
   text-decoration: line-through;
+}
+
+/* Tables */
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1em 0;
+  overflow: hidden;
+}
+
+.ProseMirror table td,
+.ProseMirror table th {
+  min-width: 1em;
+  border: 1px solid #e5e7eb;
+  padding: 0.5em 0.75em;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.ProseMirror table th {
+  font-weight: 600;
+  text-align: left;
+  background-color: #f9fafb;
+}
+
+.ProseMirror table .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: '';
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(59, 130, 246, 0.1);
+  pointer-events: none;
+}
+
+.ProseMirror table .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: #3b82f6;
+  pointer-events: none;
+}
+
+.ProseMirror table p {
+  margin: 0;
+}
+
+/* Math nodes */
+.ProseMirror .math-node {
+  display: inline-block;
+  margin: 0 0.2em;
+  padding: 0.1em 0.3em;
+  background-color: rgba(135, 131, 120, 0.1);
+  border-radius: 3px;
+}
+
+.ProseMirror .math-content {
+  font-family: 'Times New Roman', serif;
+}
+
+/* Mermaid diagrams */
+.ProseMirror .mermaid-node {
+  margin: 1em 0;
+}
+
+.ProseMirror .mermaid-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100px;
+}
+
+.ProseMirror .mermaid-content svg {
+  max-width: 100%;
+  height: auto;
 }
