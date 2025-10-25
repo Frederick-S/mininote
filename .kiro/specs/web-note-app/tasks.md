@@ -91,7 +91,7 @@
   - Add Mermaid diagram support for flowcharts
   - _Requirements: 4.3, 4.4, 4.5, 4.6_
 
-- [ ] 7.3 Implement slash commands system
+- [x] 7.3 Implement slash commands system
   - Create SlashCommandMenu component
   - Add markdown formatting commands (headings, lists, quotes)
   - Implement table and code block insertion commands

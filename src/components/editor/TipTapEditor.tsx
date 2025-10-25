@@ -8,9 +8,12 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import { common, createLowlight } from 'lowlight';
 import { MathExtension } from './extensions/MathExtension';
 import { MermaidExtension } from './extensions/MermaidExtension';
+import { SlashCommandExtension } from './extensions/SlashCommandExtension';
 import {
   Bold,
   Italic,
@@ -34,6 +37,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import 'tippy.js/dist/tippy.css';
 import './editor.css';
 
 const lowlight = createLowlight(common);
@@ -92,8 +96,20 @@ export function TipTapEditor({
           class: 'code-block-lowlight',
         },
       }),
+      TaskList.configure({
+        HTMLAttributes: {
+          class: 'task-list',
+        },
+      }),
+      TaskItem.configure({
+        HTMLAttributes: {
+          class: 'task-item',
+        },
+        nested: true,
+      }),
       MathExtension,
       MermaidExtension,
+      SlashCommandExtension,
     ],
     content,
     editable,

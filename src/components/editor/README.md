@@ -12,6 +12,7 @@ A WYSIWYG markdown editor with a formatting toolbar and advanced content feature
 - **Rich Text Formatting**: Bold, italic, strikethrough, inline code
 - **Headings**: H1, H2, H3 support
 - **Lists**: Bullet lists and numbered lists
+- **Task Lists**: Checkbox lists for todos (Task 7.3)
 - **Blockquotes**: Quote formatting
 - **Links**: Add and edit hyperlinks
 - **History**: Undo/redo support
@@ -53,6 +54,39 @@ A WYSIWYG markdown editor with a formatting toolbar and advanced content feature
 - Real-time diagram rendering
 - Click the Network icon to insert diagrams
 
+#### Slash Commands (Task 7.3)
+
+Type `/` anywhere in the editor to open the slash command menu for quick content insertion.
+
+##### Available Commands
+
+**Text Formatting:**
+- `/text` - Plain text paragraph
+- `/h1` or `/heading` - Heading 1 (large section heading)
+- `/h2` - Heading 2 (medium section heading)
+- `/h3` - Heading 3 (small section heading)
+
+**Lists:**
+- `/bullet` or `/ul` - Bullet list (unordered)
+- `/numbered` or `/ol` - Numbered list (ordered)
+- `/todo` or `/task` - Task list with checkboxes
+
+**Content Blocks:**
+- `/quote` - Blockquote
+- `/code` - Code block with syntax highlighting
+- `/divider` or `/hr` - Horizontal divider line
+- `/table` - Insert 3x3 table with header row
+
+**Advanced Content:**
+- `/math` or `/formula` - Mathematical expression (LaTeX)
+- `/mermaid` or `/diagram` - Mermaid diagram (flowcharts, etc.)
+
+##### Slash Command Features
+- **Keyboard Navigation**: Use Arrow Up/Down to navigate, Enter to select, Escape to close
+- **Mouse Support**: Hover and click to select commands
+- **Visual Feedback**: Icons and descriptions for each command
+- **Smart Positioning**: Menu appears below cursor automatically
+
 ### Usage
 
 ```tsx
@@ -65,7 +99,7 @@ function MyComponent() {
     <TipTapEditor
       content={content}
       onChange={setContent}
-      placeholder="Start writing..."
+      placeholder="Start writing... Type / for commands"
       editable={true}
     />
   );
@@ -85,6 +119,7 @@ function MyComponent() {
 - **Ctrl/Cmd + I**: Italic
 - **Ctrl/Cmd + Z**: Undo
 - **Ctrl/Cmd + Shift + Z**: Redo
+- **/**: Open slash command menu
 
 ### Styling
 
@@ -104,8 +139,13 @@ The editor uses Tailwind's typography plugin for prose styling. Custom styles ar
 - **TableCell**: Table cell editing
 - **TableHeader**: Table header cells
 - **CodeBlockLowlight**: Syntax-highlighted code blocks using Lowlight
+- **TaskList**: Task list support (Task 7.3)
+- **TaskItem**: Individual task items with checkboxes (Task 7.3)
 - **MathExtension**: Custom extension for LaTeX/MathJax math rendering
 - **MermaidExtension**: Custom extension for Mermaid diagram rendering
+
+#### Slash Command Extension (Task 7.3)
+- **SlashCommandExtension**: Implements slash command functionality using TipTap's suggestion plugin
 
 ### Custom Extensions
 
@@ -129,6 +169,31 @@ Renders diagrams using Mermaid syntax.
 - Real-time rendering
 - Error handling with user-friendly messages
 
+#### SlashCommandExtension
+Located in `extensions/SlashCommandExtension.tsx`
+
+Implements the slash command system for quick content insertion.
+
+**Features:**
+- Triggered by typing `/` in the editor
+- Integrates with TipTap's suggestion plugin
+- Uses Tippy.js for positioning
+- Renders SlashCommandMenu component
+
+### Components
+
+#### SlashCommandMenu
+Located in `SlashCommandMenu.tsx`
+
+A dropdown menu component that displays available slash commands.
+
+**Features:**
+- Keyboard navigation (Arrow keys, Enter, Escape)
+- Mouse hover and click support
+- Visual icons and descriptions
+- Searchable command list
+- Responsive design
+
 ### Requirements Satisfied
 
 This implementation satisfies the following requirements:
@@ -137,3 +202,7 @@ This implementation satisfies the following requirements:
 - **Requirement 4.4**: Code block support with syntax highlighting
 - **Requirement 4.5**: Mathematical expressions with MathJax rendering
 - **Requirement 4.6**: Mermaid diagram support for flowcharts
+- **Requirement 5.1**: Slash command menu with formatting and content options
+- **Requirement 5.2**: Markdown format commands (headings, lists, tables, code blocks, quotes)
+- **Requirement 5.4**: Diagram and math expression commands
+
