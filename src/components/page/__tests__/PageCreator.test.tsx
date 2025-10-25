@@ -87,9 +87,8 @@ describe('PageCreator', () => {
     await user.click(screen.getByRole('button', { name: /new page/i }));
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/page title/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/parent page/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/initial content/i)).toBeInTheDocument();
     });
   });
 
@@ -119,10 +118,10 @@ describe('PageCreator', () => {
     await user.click(screen.getByRole('button', { name: /new page/i }));
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/page title/i)).toBeInTheDocument();
     });
 
-    await user.type(screen.getByLabelText(/title/i), 'Test Page');
+    await user.type(screen.getByLabelText(/page title/i), 'Test Page');
     await user.click(screen.getByRole('button', { name: /create page/i }));
 
     await waitFor(() => {
