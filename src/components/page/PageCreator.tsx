@@ -31,12 +31,10 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import type { PageWithChildren, PageData } from '@/types/database';
 
 const pageSchema = z.object({
   title: z.string().min(1, 'Title is required').max(255, 'Title is too long'),
-  content: z.string().optional(),
   parent_page_id: z.string().optional(),
 });
 
@@ -63,7 +61,6 @@ export function PageCreator({
     resolver: zodResolver(pageSchema),
     defaultValues: {
       title: '',
-      content: '',
       parent_page_id: defaultParentId || '',
     },
   });
@@ -72,7 +69,7 @@ export function PageCreator({
     try {
       const newPage: PageData = await createPage.mutateAsync({
         title: data.title,
-        content: data.content || '',
+        content: '',
         notebook_id: notebookId,
         parent_page_id: data.parent_page_id || undefined,
       });
@@ -117,7 +114,7 @@ export function PageCreator({
         <DialogHeader>
           <DialogTitle>Create New Page</DialogTitle>
           <DialogDescription>
-            Add a new page to your notebook. You can optionally nest it under an existing page.
+            Create a new page. You'll be able to add content using the rich editor after creation.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -127,9 +124,9 @@ export function PageCreator({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>Page Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter page title" {...field} />
+                    <Input placeholder="Enter page title" {...field} autoFocus />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -163,28 +160,7 @@ export function PageCreator({
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Choose a parent page to create a nested page structure
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="content"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Initial Content (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Enter initial content..."
-                      className="min-h-[100px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    You can add or edit content after creating the page
+                    Choose a parent page to create a nested structure
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
