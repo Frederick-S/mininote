@@ -27,9 +27,10 @@ type PageEditFormData = z.infer<typeof pageEditSchema>;
 interface PageEditorProps {
   page: PageData;
   onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-export function PageEditor({ page, onSuccess }: PageEditorProps) {
+export function PageEditor({ page, onSuccess, onCancel }: PageEditorProps) {
   const updatePage = useUpdatePage();
   const [editorContent, setEditorContent] = useState(page.content);
 
@@ -111,22 +112,36 @@ export function PageEditor({ page, onSuccess }: PageEditorProps) {
             )}
           />
 
-          <div className="flex justify-end gap-2">
-            {isDirty && (
-              <span className="text-sm text-muted-foreground self-center">
-                Unsaved changes
-              </span>
-            )}
-            <Button
-              type="submit"
-              disabled={updatePage.isPending || !isDirty}
-            >
-              {updatePage.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <div className="flex justify-between items-center">
+            <div className="flex gap-2">
+              {onCancel && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onCancel}
+                  disabled={updatePage.isPending}
+                >
+                  Cancel
+                </Button>
               )}
-              <Save className="mr-2 h-4 w-4" />
-              Save Changes
-            </Button>
+            </div>
+            <div className="flex gap-2 items-center">
+              {isDirty && (
+                <span className="text-sm text-muted-foreground">
+                  Unsaved changes
+                </span>
+              )}
+              <Button
+                type="submit"
+                disabled={updatePage.isPending || !isDirty}
+              >
+                {updatePage.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                <Save className="mr-2 h-4 w-4" />
+                Save Changes
+              </Button>
+            </div>
           </div>
         </form>
       </Form>

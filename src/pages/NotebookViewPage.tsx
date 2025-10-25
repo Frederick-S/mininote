@@ -181,40 +181,43 @@ export function NotebookViewPage() {
             <div className="lg:col-span-2">
               {selectedPage ? (
                 <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle>{selectedPage.title}</CardTitle>
-                        <CardDescription>
-                          Last updated: {new Date(selectedPage.updated_at).toLocaleString()}
-                        </CardDescription>
+                  {!isEditing && (
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle>{selectedPage.title}</CardTitle>
+                          <CardDescription>
+                            Last updated: {new Date(selectedPage.updated_at).toLocaleString()}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsEditing(true)}
+                          >
+                            Edit
+                          </Button>
+                          <PageDeleteDialog
+                            pageId={selectedPage.id}
+                            pageTitle={selectedPage.title}
+                            onSuccess={handlePageDeleted}
+                            trigger={
+                              <Button variant="ghost" size="sm">
+                                Delete
+                              </Button>
+                            }
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant={isEditing ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setIsEditing(!isEditing)}
-                        >
-                          {isEditing ? 'View' : 'Edit'}
-                        </Button>
-                        <PageDeleteDialog
-                          pageId={selectedPage.id}
-                          pageTitle={selectedPage.title}
-                          onSuccess={handlePageDeleted}
-                          trigger={
-                            <Button variant="ghost" size="sm">
-                              Delete
-                            </Button>
-                          }
-                        />
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
+                    </CardHeader>
+                  )}
+                  <CardContent className={isEditing ? 'pt-6' : ''}>
                     {isEditing ? (
                       <PageEditor
                         page={selectedPage}
                         onSuccess={() => setIsEditing(false)}
+                        onCancel={() => setIsEditing(false)}
                       />
                     ) : (
                       <div className="prose max-w-none">
