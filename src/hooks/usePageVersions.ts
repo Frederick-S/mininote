@@ -10,20 +10,20 @@ export function usePageVersions(pageId: string | undefined) {
     queryKey: ['page-versions', pageId],
     queryFn: async () => {
       if (!pageId) return [];
-      
+
       const userId = await requireAuth();
-      
+
       const { data, error } = await supabase
         .from('page_versions')
         .select('*')
         .eq('page_id', pageId)
         .eq('user_id', userId)
         .order('version', { ascending: false });
-      
+
       if (error) {
         throw error;
       }
-      
+
       return data || [];
     },
     enabled: !!pageId,
@@ -38,20 +38,20 @@ export function usePageVersion(versionId: string | undefined) {
     queryKey: ['page-version', versionId],
     queryFn: async () => {
       if (!versionId) return null;
-      
+
       const userId = await requireAuth();
-      
+
       const { data, error } = await supabase
         .from('page_versions')
         .select('*')
         .eq('id', versionId)
         .eq('user_id', userId)
         .single();
-      
+
       if (error) {
         throw error;
       }
-      
+
       return data;
     },
     enabled: !!versionId,
@@ -63,7 +63,7 @@ export function usePageVersion(versionId: string | undefined) {
  */
 export function useCreatePageVersion() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: {
       page_id: string;
@@ -72,7 +72,7 @@ export function useCreatePageVersion() {
       version: number;
     }) => {
       const userId = await requireAuth();
-      
+
       const { data: version, error } = await supabase
         .from('page_versions')
         .insert({
@@ -84,11 +84,11 @@ export function useCreatePageVersion() {
         })
         .select()
         .single();
-      
+
       if (error) {
         throw error;
       }
-      
+
       return version;
     },
     onSuccess: (data) => {
@@ -102,14 +102,14 @@ export function useCreatePageVersion() {
  */
 export function useRestorePageVersion() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: {
       page_id: string;
       version_id: string;
     }) => {
       const userId = await requireAuth();
-      
+
       // Get the version to restore
       const { data: version, error: versionError } = await supabase
         .from('page_versions')
@@ -117,11 +117,11 @@ export function useRestorePageVersion() {
         .eq('id', data.version_id)
         .eq('user_id', userId)
         .single();
-      
+
       if (versionError) {
         throw versionError;
       }
-      
+
       // Get current page to increment version
       const { data: currentPage, error: pageError } = await supabase
         .from('pages')
@@ -129,11 +129,11 @@ export function useRestorePageVersion() {
         .eq('id', data.page_id)
         .eq('user_id', userId)
         .single();
-      
+
       if (pageError) {
         throw pageError;
       }
-      
+
       // Update the page with the version content
       const { data: page, error } = await supabase
         .from('pages')
@@ -146,11 +146,11 @@ export function useRestorePageVersion() {
         .eq('user_id', userId)
         .select()
         .single();
-      
+
       if (error) {
         throw error;
       }
-      
+
       return page;
     },
     onSuccess: (data) => {
@@ -169,9 +169,9 @@ export function useComparePageVersions(versionId1: string | undefined, versionId
     queryKey: ['page-versions-compare', versionId1, versionId2],
     queryFn: async () => {
       if (!versionId1 || !versionId2) return null;
-      
+
       const userId = await requireAuth();
-      
+
       // Fetch both versions
       const [version1Result, version2Result] = await Promise.all([
         supabase
@@ -187,15 +187,15 @@ export function useComparePageVersions(versionId1: string | undefined, versionId
           .eq('user_id', userId)
           .single(),
       ]);
-      
+
       if (version1Result.error) {
         throw version1Result.error;
       }
-      
+
       if (version2Result.error) {
         throw version2Result.error;
       }
-      
+
       return {
         version1: version1Result.data,
         version2: version2Result.data,
@@ -210,7 +210,7 @@ export function useComparePageVersions(versionId1: string | undefined, versionId
  */
 export function useDeletePageVersions() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: {
       page_id: string;
@@ -218,7 +218,7 @@ export function useDeletePageVersions() {
     }) => {
       const userId = await requireAuth();
       const keepLatest = data.keep_latest || 10;
-      
+
       // Get all versions for the page
       const { data: versions, error: fetchError } = await supabase
         .from('page_versions')
@@ -226,35 +226,94 @@ export function useDeletePageVersions() {
         .eq('page_id', data.page_id)
         .eq('user_id', userId)
         .order('version', { ascending: false });
-      
+
       if (fetchError) {
         throw fetchError;
       }
-      
+
       const versionList = versions || [];
-      
+
       // Keep only the latest N versions
       if (versionList.length > keepLatest) {
         const versionsToDelete = versionList.slice(keepLatest);
         const idsToDelete = versionsToDelete.map(v => v.id);
-        
+
         const { error } = await supabase
           .from('page_versions')
           .delete()
           .in('id', idsToDelete)
           .eq('user_id', userId);
-        
+
         if (error) {
           throw error;
         }
-        
+
         return { deleted: idsToDelete.length };
       }
-      
+
       return { deleted: 0 };
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['page-versions', variables.page_id] });
     },
+  });
+}
+
+/**
+ * Hook for deleting a specific page version
+ */
+export function useDeletePageVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      version_id: string;
+      page_id: string;
+    }) => {
+      const userId = await requireAuth();
+
+      const { error } = await supabase
+        .from('page_versions')
+        .delete()
+        .eq('id', data.version_id)
+        .eq('user_id', userId);
+
+      if (error) {
+        throw error;
+      }
+
+      return { version_id: data.version_id, page_id: data.page_id };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['page-versions', data.page_id] });
+      queryClient.invalidateQueries({ queryKey: ['page-version', data.version_id] });
+    },
+  });
+}
+
+/**
+ * Hook for getting version count for a page
+ */
+export function usePageVersionCount(pageId: string | undefined) {
+  return useQuery({
+    queryKey: ['page-versions-count', pageId],
+    queryFn: async () => {
+      if (!pageId) return 0;
+
+      const userId = await requireAuth();
+
+      const { count, error } = await supabase
+        .from('page_versions')
+        .select('*', { count: 'exact', head: true })
+        .eq('page_id', pageId)
+        .eq('user_id', userId);
+
+      if (error) {
+        throw error;
+      }
+
+      return count || 0;
+    },
+    enabled: !!pageId,
   });
 }

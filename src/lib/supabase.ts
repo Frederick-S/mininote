@@ -79,13 +79,13 @@ export type Database = {
       page_versions: {
         Row: PageVersionData;
         Insert: Omit<PageVersionData, 'id' | 'created_at'>;
-        Update: never;
+        Update: Partial<Omit<PageVersionData, 'id' | 'created_at'>>;
         Relationships: [];
       };
       attachments: {
         Row: AttachmentData;
         Insert: Omit<AttachmentData, 'id' | 'created_at'>;
-        Update: never;
+        Update: Partial<Omit<AttachmentData, 'id' | 'created_at'>>;
         Relationships: [];
       };
     };

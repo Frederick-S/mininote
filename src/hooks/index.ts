@@ -31,6 +31,8 @@ export {
   useRestorePageVersion,
   useComparePageVersions,
   useDeletePageVersions,
+  useDeletePageVersion,
+  usePageVersionCount,
 } from './usePageVersions';
 
 // Attachment hooks

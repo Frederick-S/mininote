@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { requireAuth } from '../lib/database';
+import { cleanupOldVersions, DEFAULT_VERSION_CONFIG } from '../lib/versionManager';
 import type { PageData, PageFilters, PageWithChildren } from '../types/database';
 
 /**
@@ -237,19 +238,52 @@ export function useUpdatePage() {
       title?: string;
       content?: string;
       parent_page_id?: string;
+      createVersion?: boolean; // Optional flag to control version creation
     }) => {
       const userId = await requireAuth();
       
-      // Get current page to increment version
+      // Get current page to increment version and create snapshot
       const { data: currentPage, error: fetchError } = await supabase
         .from('pages')
-        .select('version, notebook_id')
+        .select('version, notebook_id, title, content')
         .eq('id', data.id)
         .eq('user_id', userId)
         .single();
       
       if (fetchError) {
         throw fetchError;
+      }
+      
+      // Create version snapshot before updating (default: true)
+      const shouldCreateVersion = data.createVersion !== false;
+      
+      if (shouldCreateVersion && (data.title !== undefined || data.content !== undefined)) {
+        // Only create version if title or content is being changed
+        const contentChanged = data.content !== undefined && data.content !== currentPage.content;
+        const titleChanged = data.title !== undefined && data.title !== currentPage.title;
+        
+        if (contentChanged || titleChanged) {
+          const { error: versionError } = await supabase
+            .from('page_versions')
+            .insert({
+              page_id: data.id,
+              title: currentPage.title,
+              content: currentPage.content,
+              version: currentPage.version,
+              user_id: userId,
+            });
+          
+          if (versionError) {
+            console.error('Failed to create version snapshot:', versionError);
+            // Don't throw - continue with update even if version creation fails
+          } else {
+            // Cleanup old versions after successful version creation
+            cleanupOldVersions(data.id, userId, DEFAULT_VERSION_CONFIG).catch(err => {
+              console.error('Failed to cleanup old versions:', err);
+              // Don't throw - cleanup failure shouldn't block the update
+            });
+          }
+        }
       }
       
       const { data: page, error } = await supabase
@@ -299,6 +333,7 @@ export function useUpdatePage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['page', data?.id] });
       queryClient.invalidateQueries({ queryKey: ['pages', data?.notebook_id] });
+      queryClient.invalidateQueries({ queryKey: ['page-versions', data?.id] });
       if (data?.parent_page_id) {
         queryClient.invalidateQueries({ queryKey: ['pages', 'children', data.parent_page_id] });
       }

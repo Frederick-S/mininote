@@ -77,7 +77,7 @@ function PageTreeItem({
         className={cn(
           'group flex items-center gap-1 py-1 px-2 rounded-md hover:bg-accent cursor-pointer transition-colors',
           isSelected && 'bg-accent',
-          level > 0 && 'ml-4'
+          level > 0 && 'ml-2'
         )}
         onClick={handleClick}
         draggable
@@ -212,7 +212,7 @@ export function PageTree({
 
   return (
     <ScrollArea className={cn('h-full', className)}>
-      <div className="space-y-1 p-2" onDragEnd={handleDragEnd}>
+      <div className="space-y-1 p-1" onDragEnd={handleDragEnd}>
         {pages.map((page) => (
           <PageTreeItem
             key={page.id}
