@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Clock, RotateCcw, Eye, GitCompare, Loader2 } from 'lucide-react';
+import { marked } from 'marked';
 import { usePageVersions, useRestorePageVersion } from '@/hooks/usePageVersions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +29,12 @@ export function VersionHistory({ pageId, currentVersion, onVersionRestore }: Ver
   } | null>(null);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [versionToRestore, setVersionToRestore] = useState<PageVersionData | null>(null);
+
+  // Convert markdown to HTML for viewing
+  const viewingVersionHtml = useMemo(() => {
+    if (!viewingVersion?.content) return '';
+    return marked(viewingVersion.content, { async: false }) as string;
+  }, [viewingVersion?.content]);
 
   const handleViewVersion = (version: PageVersionData) => {
     setViewingVersion(version);
@@ -244,7 +251,7 @@ export function VersionHistory({ pageId, currentVersion, onVersionRestore }: Ver
             <ScrollArea className="h-full pr-4">
               <div
                 className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: viewingVersion?.content || '' }}
+                dangerouslySetInnerHTML={{ __html: viewingVersionHtml }}
               />
             </ScrollArea>
           </div>

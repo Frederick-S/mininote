@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
+import { marked } from 'marked';
 import { useNotebook } from '../hooks/useNotebooks';
 import { usePagesHierarchy } from '../hooks/usePages';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -48,6 +49,12 @@ export function NotebookViewPage() {
   };
 
   const selectedPage = pages ? flattenPages(pages).find((p: PageData) => p.id === selectedPageId) : undefined;
+
+  // Convert markdown to HTML for display
+  const pageContentHtml = useMemo(() => {
+    if (!selectedPage?.content) return '';
+    return marked(selectedPage.content, { async: false }) as string;
+  }, [selectedPage?.content]);
 
   const handlePageSelect = (pageId: string) => {
     setSelectedPageId(pageId);
@@ -242,7 +249,7 @@ export function NotebookViewPage() {
                       ) : (
                         <div className="prose max-w-none">
                           {selectedPage.content ? (
-                            <div dangerouslySetInnerHTML={{ __html: selectedPage.content }} />
+                            <div dangerouslySetInnerHTML={{ __html: pageContentHtml }} />
                           ) : (
                             <p className="text-muted-foreground">No content yet. Click Edit to add content.</p>
                           )}

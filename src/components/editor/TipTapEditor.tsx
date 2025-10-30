@@ -11,6 +11,7 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { common, createLowlight } from 'lowlight';
+import { Markdown } from 'tiptap-markdown';
 import { MathExtension } from './extensions/MathExtension';
 import { MermaidExtension } from './extensions/MermaidExtension';
 import { SlashCommandExtension } from './extensions/SlashCommandExtension';
@@ -63,6 +64,11 @@ export function TipTapEditor({
         },
         codeBlock: false, // Disable default code block to use CodeBlockLowlight
       }),
+      Markdown.configure({
+        html: true, // Allow HTML in markdown
+        transformPastedText: true,
+        transformCopiedText: true,
+      }),
       Placeholder.configure({
         placeholder,
       }),
@@ -114,7 +120,8 @@ export function TipTapEditor({
     content,
     editable,
     onUpdate: ({ editor }) => {
-      const markdown = editor.getHTML();
+      // Get markdown content from the Markdown extension
+      const markdown = (editor.storage as any).markdown.getMarkdown();
       onChange(markdown);
     },
     editorProps: {
