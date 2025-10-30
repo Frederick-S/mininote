@@ -21,7 +21,7 @@ import { FileText, Plus, Trash2, Move } from 'lucide-react';
  * Shows all CRUD operations in a toolbar
  */
 export function PageManagementToolbar({ pageId, notebookId }: { pageId: string; notebookId: string }) {
-  const { data: page } = usePage(pageId);
+  const { data: page } = usePage(pageId) as { data: any };
   const navigate = useNavigate();
 
   if (!page) return null;
@@ -77,8 +77,8 @@ export function PageManagementToolbar({ pageId, notebookId }: { pageId: string; 
  */
 export function PageEditorView() {
   const { pageId } = useParams<{ pageId: string }>();
-  const { data: page, isLoading } = usePage(pageId);
-  const navigate = useNavigate();
+  const { data: page, isLoading } = usePage(pageId) as { data: any; isLoading: boolean };
+  const _navigate = useNavigate();
 
   if (isLoading) {
     return <div className="p-8">Loading...</div>;

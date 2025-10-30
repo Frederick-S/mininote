@@ -175,7 +175,7 @@ export function useCreatePage() {
           notebook_id: data.notebook_id,
           parent_page_id: data.parent_page_id,
           user_id: userId,
-        })
+        } as any)
         .select()
         .single();
       
@@ -212,12 +212,12 @@ export function useCreatePage() {
       
       return { previousPages };
     },
-    onError: (err, newPage, context) => {
+    onError: (_err, newPage, context) => {
       if (context?.previousPages) {
         queryClient.setQueryData(['pages', newPage.notebook_id], context.previousPages);
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['pages', data?.notebook_id] });
       if (data?.parent_page_id) {
         queryClient.invalidateQueries({ queryKey: ['pages', 'children', data.parent_page_id] });
@@ -248,10 +248,10 @@ export function useUpdatePage() {
         .select('version, notebook_id, title, content')
         .eq('id', data.id)
         .eq('user_id', userId)
-        .single();
+        .single() as { data: { version: number; notebook_id: string; title: string; content: string } | null; error: any };
       
-      if (fetchError) {
-        throw fetchError;
+      if (fetchError || !currentPage) {
+        throw fetchError || new Error('Page not found');
       }
       
       // Create version snapshot before updating (default: true)
@@ -271,14 +271,14 @@ export function useUpdatePage() {
               content: currentPage.content,
               version: currentPage.version,
               user_id: userId,
-            });
+            } as any);
           
           if (versionError) {
             console.error('Failed to create version snapshot:', versionError);
             // Don't throw - continue with update even if version creation fails
           } else {
             // Cleanup old versions after successful version creation
-            cleanupOldVersions(data.id, userId, DEFAULT_VERSION_CONFIG).catch(err => {
+            cleanupOldVersions(data.id, userId, DEFAULT_VERSION_CONFIG).catch((err) => {
               console.error('Failed to cleanup old versions:', err);
               // Don't throw - cleanup failure shouldn't block the update
             });
@@ -293,7 +293,7 @@ export function useUpdatePage() {
           content: data.content,
           parent_page_id: data.parent_page_id,
           version: currentPage.version + 1,
-        })
+        } as any)
         .eq('id', data.id)
         .eq('user_id', userId)
         .select()
@@ -325,12 +325,12 @@ export function useUpdatePage() {
       
       return { previousPage };
     },
-    onError: (err, updatedPage, context) => {
+    onError: (_err, updatedPage, context) => {
       if (context?.previousPage) {
         queryClient.setQueryData(['page', updatedPage.id], context.previousPage);
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['page', data?.id] });
       queryClient.invalidateQueries({ queryKey: ['pages', data?.notebook_id] });
       queryClient.invalidateQueries({ queryKey: ['page-versions', data?.id] });
@@ -360,7 +360,7 @@ export function useMovePage() {
         .update({
           parent_page_id: data.parent_page_id,
           notebook_id: data.notebook_id,
-        })
+        } as any)
         .eq('id', data.id)
         .eq('user_id', userId)
         .select()
@@ -372,7 +372,7 @@ export function useMovePage() {
       
       return page;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['pages'] });
       queryClient.invalidateQueries({ queryKey: ['page', data?.id] });
     },
@@ -395,10 +395,10 @@ export function useDeletePage() {
         .select('notebook_id, parent_page_id')
         .eq('id', pageId)
         .eq('user_id', userId)
-        .single();
+        .single() as { data: { notebook_id: string; parent_page_id?: string } | null; error: any };
       
-      if (fetchError) {
-        throw fetchError;
+      if (fetchError || !pageInfo) {
+        throw fetchError || new Error('Page not found');
       }
       
       const { error } = await supabase

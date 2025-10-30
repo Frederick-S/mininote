@@ -42,7 +42,7 @@ export async function createVersionSnapshot(
         content,
         version,
         user_id: userId,
-      })
+      } as any)
       .select()
       .single();
 
@@ -78,7 +78,7 @@ export async function cleanupOldVersions(
       .select('id, version')
       .eq('page_id', pageId)
       .eq('user_id', userId)
-      .order('version', { ascending: false });
+      .order('version', { ascending: false }) as { data: Array<{ id: string; version: number }> | null; error: any };
 
     if (fetchError) {
       console.error('Failed to fetch versions for cleanup:', fetchError);
@@ -220,7 +220,7 @@ export async function getLatestVersionNumber(
       .eq('user_id', userId)
       .order('version', { ascending: false })
       .limit(1)
-      .single();
+      .single() as { data: { version: number } | null; error: any };
 
     if (error || !data) {
       return 0;

@@ -82,7 +82,7 @@ export function useCreateNotebook() {
           title: data.title,
           description: data.description,
           user_id: userId,
-        })
+        } as any)
         .select()
         .single();
       
@@ -118,7 +118,7 @@ export function useCreateNotebook() {
       
       return { previousNotebooks };
     },
-    onError: (err, newNotebook, context) => {
+    onError: (_err, _newNotebook, context) => {
       // Rollback on error
       if (context?.previousNotebooks) {
         queryClient.setQueryData(['notebooks'], context.previousNotebooks);
@@ -146,7 +146,7 @@ export function useUpdateNotebook() {
         .update({
           title: data.title,
           description: data.description,
-        })
+        } as any)
         .eq('id', data.id)
         .eq('user_id', userId)
         .select()
@@ -187,7 +187,7 @@ export function useUpdateNotebook() {
       
       return { previousNotebooks, previousNotebook };
     },
-    onError: (err, updatedNotebook, context) => {
+    onError: (_err, updatedNotebook, context) => {
       if (context?.previousNotebooks) {
         queryClient.setQueryData(['notebooks'], context.previousNotebooks);
       }
@@ -195,7 +195,7 @@ export function useUpdateNotebook() {
         queryClient.setQueryData(['notebook', updatedNotebook.id], context.previousNotebook);
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['notebooks'] });
       queryClient.invalidateQueries({ queryKey: ['notebook', data?.id] });
     },
@@ -239,7 +239,7 @@ export function useDeleteNotebook() {
       
       return { previousNotebooks };
     },
-    onError: (err, notebookId, context) => {
+    onError: (_err, _notebookId, context) => {
       if (context?.previousNotebooks) {
         queryClient.setQueryData(['notebooks'], context.previousNotebooks);
       }

@@ -99,7 +99,7 @@ export function useUploadAttachment() {
           storage_path: uploadData.path,
           page_id: data.page_id,
           user_id: userId,
-        })
+        } as any)
         .select()
         .single();
       
@@ -172,10 +172,10 @@ export function useDeleteAttachment() {
         .select('*')
         .eq('id', attachmentId)
         .eq('user_id', userId)
-        .single();
+        .single() as { data: { storage_path: string; page_id: string } | null; error: any };
       
-      if (fetchError) {
-        throw fetchError;
+      if (fetchError || !attachment) {
+        throw fetchError || new Error('Attachment not found');
       }
       
       // Delete from storage
@@ -200,7 +200,7 @@ export function useDeleteAttachment() {
       
       return { attachmentId, pageId: attachment.page_id };
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['attachments', data.pageId] });
       queryClient.invalidateQueries({ queryKey: ['attachment', data.attachmentId] });
     },
@@ -222,7 +222,7 @@ export function useDeletePageAttachments() {
         .from('attachments')
         .select('*')
         .eq('page_id', pageId)
-        .eq('user_id', userId);
+        .eq('user_id', userId) as { data: Array<{ storage_path: string }> | null; error: any };
       
       if (fetchError) {
         throw fetchError;
@@ -257,7 +257,7 @@ export function useDeletePageAttachments() {
       
       return { deleted: attachmentList.length };
     },
-    onSuccess: (data, pageId) => {
+    onSuccess: (_data, pageId) => {
       queryClient.invalidateQueries({ queryKey: ['attachments', pageId] });
     },
   });
@@ -307,7 +307,7 @@ export function useBatchUploadAttachments() {
               storage_path: uploadData.path,
               page_id: data.page_id,
               user_id: userId,
-            })
+            } as any)
             .select()
             .single();
           
@@ -325,7 +325,7 @@ export function useBatchUploadAttachments() {
       
       return { results, errors };
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['attachments', variables.page_id] });
     },
   });

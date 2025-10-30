@@ -81,7 +81,7 @@ export function useCreatePageVersion() {
           content: data.content,
           version: data.version,
           user_id: userId,
-        })
+        } as any)
         .select()
         .single();
 
@@ -91,7 +91,7 @@ export function useCreatePageVersion() {
 
       return version;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['page-versions', data?.page_id] });
     },
   });
@@ -116,10 +116,10 @@ export function useRestorePageVersion() {
         .select('*')
         .eq('id', data.version_id)
         .eq('user_id', userId)
-        .single();
+        .single() as { data: { title: string; content: string } | null; error: any };
 
-      if (versionError) {
-        throw versionError;
+      if (versionError || !version) {
+        throw versionError || new Error('Version not found');
       }
 
       // Get current page to increment version
@@ -128,10 +128,10 @@ export function useRestorePageVersion() {
         .select('version')
         .eq('id', data.page_id)
         .eq('user_id', userId)
-        .single();
+        .single() as { data: { version: number } | null; error: any };
 
-      if (pageError) {
-        throw pageError;
+      if (pageError || !currentPage) {
+        throw pageError || new Error('Page not found');
       }
 
       // Update the page with the version content
@@ -141,7 +141,7 @@ export function useRestorePageVersion() {
           title: version.title,
           content: version.content,
           version: currentPage.version + 1,
-        })
+        } as any)
         .eq('id', data.page_id)
         .eq('user_id', userId)
         .select()
@@ -153,7 +153,7 @@ export function useRestorePageVersion() {
 
       return page;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['page', data?.id] });
       queryClient.invalidateQueries({ queryKey: ['pages', data?.notebook_id] });
       queryClient.invalidateQueries({ queryKey: ['page-versions', data?.id] });
@@ -225,7 +225,7 @@ export function useDeletePageVersions() {
         .select('id, version')
         .eq('page_id', data.page_id)
         .eq('user_id', userId)
-        .order('version', { ascending: false });
+        .order('version', { ascending: false }) as { data: Array<{ id: string; version: number }> | null; error: any };
 
       if (fetchError) {
         throw fetchError;
@@ -253,7 +253,7 @@ export function useDeletePageVersions() {
 
       return { deleted: 0 };
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['page-versions', variables.page_id] });
     },
   });

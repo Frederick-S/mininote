@@ -131,7 +131,7 @@ describe('PageTree', () => {
     render(<PageTree pages={mockPages} />);
     
     const childPage = screen.getByText('Child Page 1-1').closest('div');
-    expect(childPage).toHaveClass('ml-4');
+    expect(childPage).toHaveClass('ml-2');
   });
 
   it('shows drag handle on hover', () => {
