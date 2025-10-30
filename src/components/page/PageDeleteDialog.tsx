@@ -19,6 +19,8 @@ interface PageDeleteDialogProps {
   pageTitle: string;
   onSuccess?: () => void;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function PageDeleteDialog({
@@ -26,8 +28,14 @@ export function PageDeleteDialog({
   pageTitle,
   onSuccess,
   trigger,
+  open: controlledOpen,
+  onOpenChange,
 }: PageDeleteDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  // Use controlled state if provided, otherwise use internal state
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
   const deletePage = useDeletePage();
   const { data: childPages } = useChildPages(pageId);
 

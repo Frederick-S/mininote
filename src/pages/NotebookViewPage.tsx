@@ -4,11 +4,20 @@ import { useNotebook } from '../hooks/useNotebooks';
 import { usePagesHierarchy } from '../hooks/usePages';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { BookOpen, Edit, ArrowLeft, Plus } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
+import { BookOpen, Edit, ArrowLeft, Plus, Clock, MoreVertical, Trash2 } from 'lucide-react';
 import { PageTree } from '../components/page/PageTree';
 import { PageCreator } from '../components/page/PageCreator';
 import { PageEditor } from '../components/page/PageEditor';
 import { PageDeleteDialog } from '../components/page/PageDeleteDialog';
+import { VersionHistory } from '../components/page/VersionHistory';
 import type { NotebookData, PageData } from '../types/database';
 
 export function NotebookViewPage() {
@@ -16,6 +25,8 @@ export function NotebookViewPage() {
   const navigate = useNavigate();
   const [selectedPageId, setSelectedPageId] = useState<string | undefined>();
   const [isEditing, setIsEditing] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const { data: notebook, isLoading, error } = useNotebook(notebookId) as {
     data: NotebookData | null | undefined;
@@ -41,6 +52,7 @@ export function NotebookViewPage() {
   const handlePageSelect = (pageId: string) => {
     setSelectedPageId(pageId);
     setIsEditing(false);
+    setShowVersionHistory(false);
   };
 
   const handlePageCreated = (pageId: string) => {
@@ -51,6 +63,7 @@ export function NotebookViewPage() {
   const handlePageDeleted = () => {
     setSelectedPageId(undefined);
     setIsEditing(false);
+    setShowDeleteDialog(false);
   };
 
   if (!notebookId) {
@@ -180,56 +193,96 @@ export function NotebookViewPage() {
             {/* Right Content - Page Editor/Viewer */}
             <div className="lg:col-span-2">
               {selectedPage ? (
-                <Card>
-                  {!isEditing && (
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle>{selectedPage.title}</CardTitle>
-                          <CardDescription>
-                            Last updated: {new Date(selectedPage.updated_at).toLocaleString()}
-                          </CardDescription>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setIsEditing(true)}
-                          >
-                            Edit
-                          </Button>
-                          <PageDeleteDialog
-                            pageId={selectedPage.id}
-                            pageTitle={selectedPage.title}
-                            onSuccess={handlePageDeleted}
-                            trigger={
-                              <Button variant="ghost" size="sm">
-                                Delete
+                <>
+                  <Card>
+                    {!isEditing && (
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle>{selectedPage.title}</CardTitle>
+                            <CardDescription>
+                              Last updated: {new Date(selectedPage.updated_at).toLocaleString()} • Version {selectedPage.version}
+                            </CardDescription>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <MoreVertical className="h-4 w-4" />
                               </Button>
-                            }
-                          />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit Page
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setShowVersionHistory(true)}>
+                                <Clock className="mr-2 h-4 w-4" />
+                                Version History
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setShowDeleteDialog(true)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Page
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                      </div>
-                    </CardHeader>
-                  )}
-                  <CardContent className={isEditing ? 'pt-6' : ''}>
-                    {isEditing ? (
-                      <PageEditor
-                        page={selectedPage}
-                        onSuccess={() => setIsEditing(false)}
-                        onCancel={() => setIsEditing(false)}
-                      />
-                    ) : (
-                      <div className="prose max-w-none">
-                        {selectedPage.content ? (
-                          <div dangerouslySetInnerHTML={{ __html: selectedPage.content }} />
-                        ) : (
-                          <p className="text-muted-foreground">No content yet. Click Edit to add content.</p>
-                        )}
-                      </div>
+                      </CardHeader>
                     )}
-                  </CardContent>
-                </Card>
+                    <CardContent className={isEditing ? 'pt-6' : ''}>
+                      {isEditing ? (
+                        <PageEditor
+                          page={selectedPage}
+                          onSuccess={() => setIsEditing(false)}
+                          onCancel={() => setIsEditing(false)}
+                        />
+                      ) : (
+                        <div className="prose max-w-none">
+                          {selectedPage.content ? (
+                            <div dangerouslySetInnerHTML={{ __html: selectedPage.content }} />
+                          ) : (
+                            <p className="text-muted-foreground">No content yet. Click Edit to add content.</p>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Version History Dialog */}
+                  <Dialog open={showVersionHistory} onOpenChange={setShowVersionHistory}>
+                    <DialogContent className="max-w-4xl max-h-[90vh]">
+                      <DialogHeader>
+                        <DialogTitle>Version History - {selectedPage.title}</DialogTitle>
+                        <DialogDescription>
+                          View and restore previous versions of this page
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="overflow-y-auto">
+                        <VersionHistory
+                          pageId={selectedPage.id}
+                          currentVersion={selectedPage.version}
+                          onVersionRestore={() => {
+                            setShowVersionHistory(false);
+                          }}
+                        />
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Delete Confirmation Dialog */}
+                  {showDeleteDialog && (
+                    <PageDeleteDialog
+                      pageId={selectedPage.id}
+                      pageTitle={selectedPage.title}
+                      onSuccess={handlePageDeleted}
+                      open={showDeleteDialog}
+                      onOpenChange={setShowDeleteDialog}
+                    />
+                  )}
+                </>
               ) : (
                 <Card>
                   <CardContent className="py-12">
