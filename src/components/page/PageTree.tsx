@@ -75,7 +75,7 @@ function PageTreeItem({
     >
       <div
         className={cn(
-          'group flex items-center gap-1 py-1 px-2 rounded-md hover:bg-accent cursor-pointer transition-colors',
+          'group flex items-center justify-start gap-1 py-1 px-2 rounded-md hover:bg-accent cursor-pointer transition-colors',
           isSelected && 'bg-accent',
           level > 0 && 'ml-2'
         )}
@@ -85,19 +85,14 @@ function PageTreeItem({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        {/* Drag Handle */}
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-          <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
-        </div>
-
         {/* Expand/Collapse Button */}
-        {hasChildren ? (
+        {hasChildren && (
           <Collapsible open={isOpen} onOpenChange={setIsOpen}>
             <CollapsibleTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0"
+                className="h-6 w-6 p-0 flex-shrink-0"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsOpen(!isOpen);
@@ -111,9 +106,12 @@ function PageTreeItem({
               </Button>
             </CollapsibleTrigger>
           </Collapsible>
-        ) : (
-          <div className="w-6" />
         )}
+
+        {/* Drag Handle */}
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
+        </div>
 
         {/* Page Icon */}
         <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
