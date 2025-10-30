@@ -19,7 +19,7 @@ export function VersionHistory({ pageId, currentVersion, onVersionRestore }: Ver
   const { data: versionsData, isLoading, error } = usePageVersions(pageId);
   const versions = (versionsData || []) as PageVersionData[];
   const restoreVersion = useRestorePageVersion();
-  
+
   const [selectedVersion, setSelectedVersion] = useState<PageVersionData | null>(null);
   const [viewingVersion, setViewingVersion] = useState<PageVersionData | null>(null);
   const [comparingVersions, setComparingVersions] = useState<{
@@ -79,7 +79,7 @@ export function VersionHistory({ pageId, currentVersion, onVersionRestore }: Ver
     if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
     if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
     if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    
+
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -166,11 +166,10 @@ export function VersionHistory({ pageId, currentVersion, onVersionRestore }: Ver
                 return (
                   <div key={version.id}>
                     <div
-                      className={`p-4 rounded-lg border transition-colors ${
-                        isSelected
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:bg-accent'
-                      }`}
+                      className={`p-4 rounded-lg border transition-colors ${isSelected
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:bg-accent'
+                        }`}
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
@@ -241,13 +240,14 @@ export function VersionHistory({ pageId, currentVersion, onVersionRestore }: Ver
               {viewingVersion && formatDate(viewingVersion.created_at)}
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="h-[500px] pr-4">
-            <div className="prose prose-sm max-w-none">
-              <pre className="whitespace-pre-wrap font-sans text-sm">
-                {viewingVersion?.content}
-              </pre>
-            </div>
-          </ScrollArea>
+          <div className="max-h-[calc(80vh-200px)] overflow-hidden">
+            <ScrollArea className="h-full pr-4">
+              <div
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: viewingVersion?.content || '' }}
+              />
+            </ScrollArea>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setViewingVersion(null)}>
               Close
@@ -280,7 +280,7 @@ export function VersionHistory({ pageId, currentVersion, onVersionRestore }: Ver
           <DialogHeader>
             <DialogTitle>Restore Version?</DialogTitle>
             <DialogDescription>
-              Are you sure you want to restore version {versionToRestore?.version}? 
+              Are you sure you want to restore version {versionToRestore?.version}?
               This will create a new version with the content from the selected version.
               Your current version will be preserved in the history.
             </DialogDescription>
