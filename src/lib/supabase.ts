@@ -78,7 +78,13 @@ export type Database = {
       };
       page_versions: {
         Row: PageVersionData;
-        Insert: Omit<PageVersionData, 'id' | 'created_at'>;
+        Insert: {
+          page_id: string;
+          title: string;
+          content: string;
+          version: number;
+          user_id: string;
+        };
         Update: Partial<Omit<PageVersionData, 'id' | 'created_at'>>;
         Relationships: [];
       };
