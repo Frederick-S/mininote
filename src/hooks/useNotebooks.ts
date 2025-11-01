@@ -141,16 +141,18 @@ export function useUpdateNotebook() {
     mutationFn: async (data: { id: string; title?: string; description?: string }) => {
       const userId = await requireAuth();
       
-      const { data: notebook, error } = await supabase
+      const result: any = await (supabase
         .from('notebooks')
-        .update({
+        .update as any)({
           title: data.title,
           description: data.description,
-        } as any)
+        })
         .eq('id', data.id)
         .eq('user_id', userId)
         .select()
         .single();
+      
+      const { data: notebook, error } = result;
       
       if (error) {
         throw error;

@@ -111,7 +111,7 @@ export function useUploadAttachment() {
       
       return attachment;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['attachments', data?.page_id] });
     },
   });

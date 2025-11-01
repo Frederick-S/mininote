@@ -286,18 +286,20 @@ export function useUpdatePage() {
         }
       }
       
-      const { data: page, error } = await supabase
+      const result: any = await (supabase
         .from('pages')
-        .update({
+        .update as any)({
           title: data.title,
           content: data.content,
           parent_page_id: data.parent_page_id,
           version: currentPage.version + 1,
-        } as any)
+        })
         .eq('id', data.id)
         .eq('user_id', userId)
         .select()
         .single();
+      
+      const { data: page, error } = result;
       
       if (error) {
         throw error;
@@ -355,16 +357,18 @@ export function useMovePage() {
     }) => {
       const userId = await requireAuth();
       
-      const { data: page, error } = await supabase
+      const result: any = await (supabase
         .from('pages')
-        .update({
+        .update as any)({
           parent_page_id: data.parent_page_id,
           notebook_id: data.notebook_id,
-        } as any)
+        })
         .eq('id', data.id)
         .eq('user_id', userId)
         .select()
         .single();
+      
+      const { data: page, error } = result;
       
       if (error) {
         throw error;

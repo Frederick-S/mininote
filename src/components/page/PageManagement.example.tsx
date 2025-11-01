@@ -78,7 +78,6 @@ export function PageManagementToolbar({ pageId, notebookId }: { pageId: string; 
 export function PageEditorView() {
   const { pageId } = useParams<{ pageId: string }>();
   const { data: page, isLoading } = usePage(pageId) as { data: any; isLoading: boolean };
-  const _navigate = useNavigate();
 
   if (isLoading) {
     return <div className="p-8">Loading...</div>;

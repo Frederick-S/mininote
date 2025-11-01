@@ -135,17 +135,19 @@ export function useRestorePageVersion() {
       }
 
       // Update the page with the version content
-      const { data: page, error } = await supabase
+      const result: any = await (supabase
         .from('pages')
-        .update({
+        .update as any)({
           title: version.title,
           content: version.content,
           version: currentPage.version + 1,
-        } as any)
+        })
         .eq('id', data.page_id)
         .eq('user_id', userId)
         .select()
         .single();
+
+      const { data: page, error } = result;
 
       if (error) {
         throw error;
