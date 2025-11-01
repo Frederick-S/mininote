@@ -73,17 +73,14 @@ export const SlashCommandExtension = Extension.create({
                         },
 
                         onKeyDown(props: any) {
-                            console.log('Extension onKeyDown:', props.event.key, 'component.ref:', component?.ref);
-                            
                             if (props.event.key === 'Escape') {
                                 popup[0].hide();
                                 return true;
                             }
 
-                            // Try to get the ref and call onKeyDown
+                            // Forward keyboard events to the SlashCommandMenu component
                             if (component?.ref && typeof component.ref === 'object') {
                                 const ref = component.ref as any;
-                                console.log('Calling ref.onKeyDown');
                                 if (ref.onKeyDown) {
                                     return ref.onKeyDown(props);
                                 }
