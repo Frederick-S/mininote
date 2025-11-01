@@ -26,7 +26,7 @@ A personal web-based note-taking application built with React, TypeScript, Supab
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 20+ and npm
 - A Supabase account and project
 
 ### Installation
