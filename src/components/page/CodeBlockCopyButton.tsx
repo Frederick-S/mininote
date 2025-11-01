@@ -29,15 +29,15 @@ export function useCodeBlockCopyButtons(containerRef: React.RefObject<HTMLElemen
         button.addEventListener('click', async (e) => {
           e.preventDefault();
           e.stopPropagation();
-          
+
           const code = codeBlock.textContent || '';
           await navigator.clipboard.writeText(code);
-          
+
           // Show checkmark
           button.textContent = '✓ Copied';
           button.title = 'Copied!';
           button.className = 'code-copy-button absolute top-2 right-2 px-3 py-1.5 text-xs rounded bg-green-600 hover:bg-green-700 text-white transition-colors z-10 font-medium';
-          
+
           // Reset after 2 seconds
           setTimeout(() => {
             button.textContent = 'Copy';
@@ -50,8 +50,11 @@ export function useCodeBlockCopyButtons(containerRef: React.RefObject<HTMLElemen
       });
     };
 
-    // Initial add
-    const timer = setTimeout(addCopyButtons, 100);
+    // Try multiple times with increasing delays to ensure content is loaded
+    const timers: NodeJS.Timeout[] = [];
+    timers.push(setTimeout(addCopyButtons, 0));
+    timers.push(setTimeout(addCopyButtons, 100));
+    timers.push(setTimeout(addCopyButtons, 300));
 
     // Watch for DOM changes and re-add buttons
     const observer = new MutationObserver(() => {
@@ -65,7 +68,7 @@ export function useCodeBlockCopyButtons(containerRef: React.RefObject<HTMLElemen
 
     // Cleanup
     return () => {
-      clearTimeout(timer);
+      timers.forEach(timer => clearTimeout(timer));
       observer.disconnect();
     };
   }, [containerRef, content]);
