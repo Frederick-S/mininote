@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import {
   Heading1,
   Heading2,
@@ -50,6 +50,8 @@ interface SlashCommandMenuProps {
 
 export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const itemsLengthRef = useRef(0);
+  const selectedIndexRef = useRef(0);
 
   const defaultItems: CommandItem[] = [
     {
@@ -238,24 +240,26 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
   };
 
   // Filter and sort items based on query with fuzzy search
-  const items = allItems
-    .map((item) => {
-      const query = (props.query || '').toLowerCase();
-      if (!query) return { item, score: 1000 };
+  const items = useMemo(() => {
+    return allItems
+      .map((item) => {
+        const query = (props.query || '').toLowerCase();
+        if (!query) return { item, score: 1000 };
 
-      const titleScore = getMatchScore(item.title, query);
-      const descriptionScore = getMatchScore(item.description, query) * 0.5;
-      const searchTermsScore = Math.max(
-        0,
-        ...(item.searchTerms?.map((term) => getMatchScore(term, query)) || [])
-      ) * 0.8;
+        const titleScore = getMatchScore(item.title, query);
+        const descriptionScore = getMatchScore(item.description, query) * 0.5;
+        const searchTermsScore = Math.max(
+          0,
+          ...(item.searchTerms?.map((term) => getMatchScore(term, query)) || [])
+        ) * 0.8;
 
-      const maxScore = Math.max(titleScore, descriptionScore, searchTermsScore);
-      return { item, score: maxScore };
-    })
-    .filter(({ score }) => score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map(({ item }) => item);
+        const maxScore = Math.max(titleScore, descriptionScore, searchTermsScore);
+        return { item, score: maxScore };
+      })
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(({ item }) => item);
+  }, [allItems, props.query]);
 
   const selectItem = (index: number) => {
     const item = items[index];
@@ -265,34 +269,56 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
   };
 
   const upHandler = () => {
-    setSelectedIndex((selectedIndex + items.length - 1) % items.length);
+    setSelectedIndex((prevIndex) => {
+      const newIndex = (prevIndex + items.length - 1) % items.length;
+      selectedIndexRef.current = newIndex;
+      return newIndex;
+    });
   };
 
   const downHandler = () => {
-    setSelectedIndex((selectedIndex + 1) % items.length);
+    setSelectedIndex((prevIndex) => {
+      const newIndex = (prevIndex + 1) % items.length;
+      selectedIndexRef.current = newIndex;
+      return newIndex;
+    });
   };
 
   const enterHandler = () => {
-    selectItem(selectedIndex);
+    // Use the ref to get the current selected index without causing setState issues
+    selectItem(selectedIndexRef.current);
   };
 
   useEffect(() => {
-    setSelectedIndex(0);
+    // Only reset selectedIndex if the items length actually changed
+    if (itemsLengthRef.current !== items.length) {
+      itemsLengthRef.current = items.length;
+      setSelectedIndex(0);
+      selectedIndexRef.current = 0;
+    }
   }, [items]);
+
+  // Keep the ref in sync with the state
+  useEffect(() => {
+    selectedIndexRef.current = selectedIndex;
+  }, [selectedIndex]);
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: { event: KeyboardEvent }) => {
       if (event.key === 'ArrowUp') {
+        event.preventDefault();
         upHandler();
         return true;
       }
 
       if (event.key === 'ArrowDown') {
+        event.preventDefault();
         downHandler();
         return true;
       }
 
       if (event.key === 'Enter') {
+        event.preventDefault();
         enterHandler();
         return true;
       }
