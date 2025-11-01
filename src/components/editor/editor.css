@@ -175,6 +175,17 @@
   font-style: italic;
 }
 
+/* Remove decorative quotes from blockquotes in prose */
+.prose blockquote::before,
+.prose blockquote::after {
+  content: none !important;
+}
+
+.prose blockquote p:first-of-type::before,
+.prose blockquote p:last-of-type::after {
+  content: none !important;
+}
+
 /* Links */
 .ProseMirror a {
   color: hsl(var(--primary));
