@@ -170,6 +170,8 @@ function App() {
                 <Route path="/notebooks" element={<NotebooksPage />} />
                 <Route path="/notebooks/new" element={<NotebookCreatePage />} />
                 <Route path="/notebooks/:notebookId" element={<NotebookViewPage />} />
+                <Route path="/notebooks/:notebookId/pages/:pageId" element={<NotebookViewPage />} />
+                <Route path="/notebooks/:notebookId/pages/:pageId/edit" element={<NotebookViewPage />} />
                 <Route path="/notebooks/:notebookId/edit" element={<NotebookEditPage />} />
                 <Route path="*" element={<Navigate to="/notebooks" replace />} />
               </Routes>

@@ -22,12 +22,17 @@ import { VersionHistory } from '../components/page/VersionHistory';
 import type { NotebookData, PageData } from '../types/database';
 
 export function NotebookViewPage() {
-  const { notebookId } = useParams<{ notebookId: string }>();
+  const { notebookId, pageId } = useParams<{ notebookId: string; pageId?: string }>();
   const navigate = useNavigate();
-  const [selectedPageId, setSelectedPageId] = useState<string | undefined>();
-  const [isEditing, setIsEditing] = useState(false);
+  const location = window.location.pathname;
+  const isEditMode = location.endsWith('/edit');
+  
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
+  // Use URL params as the source of truth for selected page and edit mode
+  const selectedPageId = pageId;
+  const isEditing = isEditMode;
 
   const { data: notebook, isLoading, error } = useNotebook(notebookId) as {
     data: NotebookData | null | undefined;
@@ -57,20 +62,35 @@ export function NotebookViewPage() {
   }, [selectedPage?.content]);
 
   const handlePageSelect = (pageId: string) => {
-    setSelectedPageId(pageId);
-    setIsEditing(false);
+    navigate(`/notebooks/${notebookId}/pages/${pageId}`);
     setShowVersionHistory(false);
   };
 
   const handlePageCreated = (pageId: string) => {
-    setSelectedPageId(pageId);
-    setIsEditing(true);
+    navigate(`/notebooks/${notebookId}/pages/${pageId}/edit`);
   };
 
   const handlePageDeleted = () => {
-    setSelectedPageId(undefined);
-    setIsEditing(false);
+    navigate(`/notebooks/${notebookId}`);
     setShowDeleteDialog(false);
+  };
+  
+  const handleEditClick = () => {
+    if (selectedPageId) {
+      navigate(`/notebooks/${notebookId}/pages/${selectedPageId}/edit`);
+    }
+  };
+  
+  const handleCancelEdit = () => {
+    if (selectedPageId) {
+      navigate(`/notebooks/${notebookId}/pages/${selectedPageId}`);
+    }
+  };
+  
+  const handleSaveSuccess = () => {
+    if (selectedPageId) {
+      navigate(`/notebooks/${notebookId}/pages/${selectedPageId}`);
+    }
   };
 
   if (!notebookId) {
@@ -218,7 +238,7 @@ export function NotebookViewPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                              <DropdownMenuItem onClick={handleEditClick}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit Page
                               </DropdownMenuItem>
@@ -243,8 +263,8 @@ export function NotebookViewPage() {
                       {isEditing ? (
                         <PageEditor
                           page={selectedPage}
-                          onSuccess={() => setIsEditing(false)}
-                          onCancel={() => setIsEditing(false)}
+                          onSuccess={handleSaveSuccess}
+                          onCancel={handleCancelEdit}
                         />
                       ) : (
                         <div className="prose max-w-none">
