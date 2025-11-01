@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { marked } from 'marked';
 import { useNotebook } from '../hooks/useNotebooks';
@@ -19,6 +19,7 @@ import { PageCreator } from '../components/page/PageCreator';
 import { PageEditor } from '../components/page/PageEditor';
 import { PageDeleteDialog } from '../components/page/PageDeleteDialog';
 import { VersionHistory } from '../components/page/VersionHistory';
+import { useCodeBlockCopyButtons } from '../components/page/CodeBlockCopyButton';
 import type { NotebookData, PageData } from '../types/database';
 
 export function NotebookViewPage() {
@@ -26,10 +27,11 @@ export function NotebookViewPage() {
   const navigate = useNavigate();
   const location = window.location.pathname;
   const isEditMode = location.endsWith('/edit');
-  
+
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  
+  const contentRef = useRef<HTMLDivElement>(null);
+
   // Use URL params as the source of truth for selected page and edit mode
   const selectedPageId = pageId;
   const isEditing = isEditMode;
@@ -61,6 +63,9 @@ export function NotebookViewPage() {
     return marked(selectedPage.content, { async: false }) as string;
   }, [selectedPage?.content]);
 
+  // Add copy buttons to code blocks in view mode
+  useCodeBlockCopyButtons(contentRef, selectedPage?.id);
+
   const handlePageSelect = (pageId: string) => {
     navigate(`/notebooks/${notebookId}/pages/${pageId}`);
     setShowVersionHistory(false);
@@ -74,19 +79,19 @@ export function NotebookViewPage() {
     navigate(`/notebooks/${notebookId}`);
     setShowDeleteDialog(false);
   };
-  
+
   const handleEditClick = () => {
     if (selectedPageId) {
       navigate(`/notebooks/${notebookId}/pages/${selectedPageId}/edit`);
     }
   };
-  
+
   const handleCancelEdit = () => {
     if (selectedPageId) {
       navigate(`/notebooks/${notebookId}/pages/${selectedPageId}`);
     }
   };
-  
+
   const handleSaveSuccess = () => {
     if (selectedPageId) {
       navigate(`/notebooks/${notebookId}/pages/${selectedPageId}`);
@@ -267,7 +272,7 @@ export function NotebookViewPage() {
                           onCancel={handleCancelEdit}
                         />
                       ) : (
-                        <div className="prose max-w-none">
+                        <div ref={contentRef} className="prose max-w-none">
                           {selectedPage.content ? (
                             <div dangerouslySetInnerHTML={{ __html: pageContentHtml }} />
                           ) : (

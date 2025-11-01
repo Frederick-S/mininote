@@ -131,9 +131,10 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
       description: 'Insert a code block with syntax highlighting',
       icon: 'Code2',
       command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
+        // Default to JavaScript
+        editor.chain().focus().deleteRange(range).setCodeBlock({ language: 'javascript' }).run();
       },
-      searchTerms: ['code', 'codeblock', 'pre', 'programming'],
+      searchTerms: ['code', 'codeblock', 'pre', 'programming', 'javascript', 'js'],
     },
     {
       title: 'Divider',

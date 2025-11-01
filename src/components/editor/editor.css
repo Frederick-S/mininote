@@ -103,6 +103,30 @@
   padding: 0;
 }
 
+/* Code Block Wrapper with Language Selector */
+.ProseMirror .code-block-wrapper {
+  margin: 1em 0;
+  border-radius: 0.5em;
+  overflow: hidden;
+}
+
+.ProseMirror .code-block-wrapper pre {
+  margin: 0;
+  border-radius: 0 0 0.5em 0.5em;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  padding: 1em;
+  overflow-x: auto;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+}
+
+.ProseMirror .code-block-wrapper code {
+  background: none;
+  color: inherit;
+  font-size: 0.9em;
+  padding: 0;
+}
+
 /* Syntax highlighting colors */
 .hljs-comment,
 .hljs-quote {

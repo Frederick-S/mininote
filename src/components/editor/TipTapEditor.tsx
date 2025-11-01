@@ -6,7 +6,6 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { common, createLowlight } from 'lowlight';
@@ -14,6 +13,7 @@ import { Markdown } from 'tiptap-markdown';
 import { MathExtension } from './extensions/MathExtension';
 import { MermaidExtension } from './extensions/MermaidExtension';
 import { SlashCommandExtension } from './extensions/SlashCommandExtension';
+import { CodeBlockWithLanguage } from './extensions/CodeBlockWithLanguage';
 import {
   Bold,
   Italic,
@@ -94,7 +94,7 @@ export function TipTapEditor({
           class: 'border border-gray-300 px-4 py-2',
         },
       }),
-      CodeBlockLowlight.configure({
+      CodeBlockWithLanguage.configure({
         lowlight,
         HTMLAttributes: {
           class: 'code-block-lowlight',
@@ -251,7 +251,7 @@ export function TipTapEditor({
 
         {/* Blocks */}
         <ToolbarButton
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          onClick={() => editor.chain().focus().setCodeBlock({ language: 'javascript' }).run()}
           isActive={editor.isActive('codeBlock')}
           title="Code Block"
         >
