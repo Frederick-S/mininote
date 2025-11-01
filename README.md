@@ -1,4 +1,4 @@
-# Web Note App
+# Web Note App [![Node.js CI](https://github.com/Frederick-S/mininote/actions/workflows/node.js.yml/badge.svg)](https://github.com/Frederick-S/mininote/actions/workflows/node.js.yml)
 
 A personal web-based note-taking application built with React, TypeScript, Supabase, and Tailwind CSS. Create and organize hierarchical notebooks with markdown-based pages, featuring rich text editing, file uploads, and comprehensive search functionality.
 
