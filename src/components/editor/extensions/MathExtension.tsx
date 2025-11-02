@@ -1,17 +1,20 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import type { MarkdownNodeSpec } from 'tiptap-markdown';
 
-// Math node component
-function MathNodeView({ node }: any) {
+// Math node component with edit capability
+function MathNodeView({ node, updateAttributes, deleteNode }: any) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(node.attrs.content);
   const { content } = node.attrs;
 
   useEffect(() => {
-    if (containerRef.current && content) {
+    if (containerRef.current && content && !isEditing) {
       try {
         katex.render(content, containerRef.current, {
           displayMode: node.attrs.display || false,
@@ -25,15 +28,72 @@ function MathNodeView({ node }: any) {
         }
       }
     }
-  }, [content, node.attrs.display]);
+  }, [content, node.attrs.display, isEditing]);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleDoubleClick = () => {
+    setIsEditing(true);
+    setEditValue(content);
+  };
+
+  const handleSave = () => {
+    if (editValue.trim()) {
+      updateAttributes({ content: editValue });
+      setIsEditing(false);
+    } else {
+      deleteNode();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setIsEditing(false);
+      setEditValue(content);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <NodeViewWrapper className="math-node-editing">
+        <input
+          ref={inputRef}
+          type="text"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleSave}
+          className="math-input"
+          placeholder="Enter LaTeX formula..."
+        />
+      </NodeViewWrapper>
+    );
+  }
 
   return (
-    <NodeViewWrapper className="math-node">
-      <div
-        ref={containerRef}
-        className="math-content inline-block"
-        style={{ minHeight: '1em' }}
-      />
+    <NodeViewWrapper className="math-node-wrapper">
+      <span className="math-node-container">
+        <div
+          ref={containerRef}
+          className="math-content"
+          onClick={handleDoubleClick}
+        />
+        <button
+          onClick={handleDoubleClick}
+          className="math-edit-button"
+          title="Edit formula"
+        >
+          ✎
+        </button>
+      </span>
     </NodeViewWrapper>
   );
 }
@@ -111,9 +171,7 @@ export const MathExtension = Node.create({
           state.write(delimiter + node.attrs.content + delimiter);
         },
         parse: {
-          // Setup markdown-it plugin to recognize math syntax
           setup(markdownit: any) {
-            // Add a rule to parse inline math $...$
             markdownit.inline.ruler.before('escape', 'math_inline', (state: any, silent: any) => {
               if (state.src[state.pos] !== '$') return false;
               
@@ -121,7 +179,6 @@ export const MathExtension = Node.create({
               let end = start;
               let foundEnd = false;
               
-              // Find closing $
               while (end < state.src.length) {
                 if (state.src[end] === '$' && state.src[end - 1] !== '\\') {
                   foundEnd = true;
@@ -144,12 +201,10 @@ export const MathExtension = Node.create({
               return true;
             });
             
-            // Add renderer for math_inline token
             markdownit.renderer.rules.math_inline = (tokens: any, idx: any) => {
               return `<span data-type="math" data-content="${tokens[idx].content}"></span>`;
             };
           },
-          // Update the DOM element to include the content attribute
           updateDOM(element: HTMLElement) {
             const content = element.getAttribute('data-content');
             if (content) {
