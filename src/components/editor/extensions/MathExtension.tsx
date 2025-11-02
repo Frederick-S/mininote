@@ -1,6 +1,8 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import { useEffect, useRef } from 'react';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
 // Math node component
 function MathNodeView({ node }: any) {
@@ -9,36 +11,18 @@ function MathNodeView({ node }: any) {
 
   useEffect(() => {
     if (containerRef.current && content) {
-      // Dynamically import MathJax
-      import('mathjax-full/js/mathjax').then(({ mathjax }) => {
-        import('mathjax-full/js/input/tex').then(({ TeX }) => {
-          import('mathjax-full/js/output/svg').then(({ SVG }) => {
-            import('mathjax-full/js/adaptors/liteAdaptor').then(({ liteAdaptor }) => {
-              import('mathjax-full/js/core/MmlTree/SerializedMmlVisitor').then(() => {
-                const adaptor = liteAdaptor();
-                const tex = new TeX({ packages: ['base', 'ams', 'noerrors'] });
-                const svg = new SVG({ fontCache: 'local' });
-                const html = mathjax.document('', { InputJax: tex, OutputJax: svg });
-
-                try {
-                  const mathNode = html.convert(content, {
-                    display: node.attrs.display || false,
-                  });
-                  const svgString = adaptor.innerHTML(mathNode);
-                  if (containerRef.current) {
-                    containerRef.current.innerHTML = svgString;
-                  }
-                } catch (error) {
-                  console.error('MathJax rendering error:', error);
-                  if (containerRef.current) {
-                    containerRef.current.innerHTML = `<span style="color: red;">Error rendering math: ${content}</span>`;
-                  }
-                }
-              });
-            });
-          });
+      try {
+        katex.render(content, containerRef.current, {
+          displayMode: node.attrs.display || false,
+          throwOnError: false,
+          errorColor: '#cc0000',
         });
-      });
+      } catch (error) {
+        console.error('KaTeX rendering error:', error);
+        if (containerRef.current) {
+          containerRef.current.innerHTML = `<span style="color: red;">Error rendering math: ${content}</span>`;
+        }
+      }
     }
   }, [content, node.attrs.display]);
 
