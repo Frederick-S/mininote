@@ -320,14 +320,11 @@
 /* Math nodes */
 .ProseMirror .math-node {
   display: inline-block;
-  margin: 0 0.2em;
-  padding: 0.1em 0.3em;
-  background-color: rgba(135, 131, 120, 0.1);
-  border-radius: 3px;
+  margin: 0 0.1em;
 }
 
 .ProseMirror .math-content {
-  font-family: 'Times New Roman', serif;
+  display: inline-block;
 }
 
 /* Mermaid diagrams */

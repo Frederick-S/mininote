@@ -120,6 +120,7 @@ export function TipTapEditor({
     onUpdate: ({ editor }) => {
       // Get markdown content from the Markdown extension
       const markdown = (editor.storage as any).markdown.getMarkdown();
+      console.log('Saved markdown:', markdown);
       onChange(markdown);
     },
     editorProps: {

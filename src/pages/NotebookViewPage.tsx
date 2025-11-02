@@ -20,6 +20,7 @@ import { PageEditor } from '../components/page/PageEditor';
 import { PageDeleteDialog } from '../components/page/PageDeleteDialog';
 import { VersionHistory } from '../components/page/VersionHistory';
 import { useCodeBlockCopyButtons } from '../components/page/CodeBlockCopyButton';
+import { renderMathInHtml } from '../utils/mathRenderer';
 import type { NotebookData, PageData } from '../types/database';
 
 export function NotebookViewPage() {
@@ -60,7 +61,8 @@ export function NotebookViewPage() {
   // Convert markdown to HTML for display
   const pageContentHtml = useMemo(() => {
     if (!selectedPage?.content) return '';
-    return marked(selectedPage.content, { async: false }) as string;
+    const html = marked(selectedPage.content, { async: false }) as string;
+    return renderMathInHtml(html);
   }, [selectedPage?.content]);
 
   // Add copy buttons to code blocks in view mode
