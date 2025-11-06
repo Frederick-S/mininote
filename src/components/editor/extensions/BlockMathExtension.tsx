@@ -6,12 +6,13 @@ import 'katex/dist/katex.min.css';
 import type { MarkdownNodeSpec } from 'tiptap-markdown';
 
 // Block Math node component with edit capability
-function BlockMathNodeView({ node, updateAttributes, deleteNode }: any) {
+function BlockMathNodeView({ node, updateAttributes, deleteNode, editor }: any) {
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(node.attrs.content);
   const { content } = node.attrs;
+  const isEditable = editor.isEditable;
 
   useEffect(() => {
     if (containerRef.current && content && !isEditing) {
@@ -38,8 +39,10 @@ function BlockMathNodeView({ node, updateAttributes, deleteNode }: any) {
   }, [isEditing]);
 
   const handleDoubleClick = () => {
-    setIsEditing(true);
-    setEditValue(content);
+    if (isEditable) {
+      setIsEditing(true);
+      setEditValue(content);
+    }
   };
 
   const handleSave = () => {
@@ -82,15 +85,17 @@ function BlockMathNodeView({ node, updateAttributes, deleteNode }: any) {
           ref={containerRef}
           className="block-math-content"
           onClick={handleDoubleClick}
-          style={{ display: 'block', textAlign: 'center' }}
+          style={{ display: 'block', textAlign: 'center', cursor: isEditable ? 'pointer' : 'default' }}
         />
-        <button
-          onClick={handleDoubleClick}
-          className="block-math-edit-button"
-          title="Edit formula"
-        >
-          ✎
-        </button>
+        {isEditable && (
+          <button
+            onClick={handleDoubleClick}
+            className="block-math-edit-button"
+            title="Edit formula"
+          >
+            ✎
+          </button>
+        )}
       </div>
     </NodeViewWrapper>
   );

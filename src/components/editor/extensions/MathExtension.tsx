@@ -6,12 +6,13 @@ import 'katex/dist/katex.min.css';
 import type { MarkdownNodeSpec } from 'tiptap-markdown';
 
 // Math node component with edit capability
-function MathNodeView({ node, updateAttributes, deleteNode }: any) {
+function MathNodeView({ node, updateAttributes, deleteNode, editor }: any) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(node.attrs.content);
   const { content } = node.attrs;
+  const isEditable = editor.isEditable;
 
   useEffect(() => {
     if (containerRef.current && content && !isEditing) {
@@ -38,8 +39,10 @@ function MathNodeView({ node, updateAttributes, deleteNode }: any) {
   }, [isEditing]);
 
   const handleDoubleClick = () => {
-    setIsEditing(true);
-    setEditValue(content);
+    if (isEditable) {
+      setIsEditing(true);
+      setEditValue(content);
+    }
   };
 
   const handleSave = () => {
@@ -85,14 +88,17 @@ function MathNodeView({ node, updateAttributes, deleteNode }: any) {
           ref={containerRef}
           className="math-content"
           onClick={handleDoubleClick}
+          style={{ cursor: isEditable ? 'pointer' : 'default' }}
         />
-        <button
-          onClick={handleDoubleClick}
-          className="math-edit-button"
-          title="Edit formula"
-        >
-          ✎
-        </button>
+        {isEditable && (
+          <button
+            onClick={handleDoubleClick}
+            className="math-edit-button"
+            title="Edit formula"
+          >
+            ✎
+          </button>
+        )}
       </span>
     </NodeViewWrapper>
   );

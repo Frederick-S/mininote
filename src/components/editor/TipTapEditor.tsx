@@ -166,7 +166,8 @@ export function TipTapEditor({
   return (
     <div className="border rounded-lg overflow-hidden">
       {/* Toolbar */}
-      <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-1">
+      {editable && (
+        <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-1">
         {/* Text Formatting */}
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -382,7 +383,8 @@ export function TipTapEditor({
         >
           <Redo className="h-4 w-4" />
         </ToolbarButton>
-      </div>
+        </div>
+      )}
 
       {/* Editor Content */}
       <EditorContent editor={editor} />
