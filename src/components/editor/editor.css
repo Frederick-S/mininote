@@ -481,3 +481,80 @@
 .slash-command-menu::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* Block Math nodes */
+.ProseMirror .block-math-node-wrapper {
+  display: block;
+  margin: 1em 0;
+}
+
+.ProseMirror .block-math-node-container {
+  position: relative;
+  display: block;
+  padding: 1em;
+  border-radius: 0.5em;
+  background-color: rgba(135, 131, 120, 0.05);
+  transition: background-color 0.2s;
+}
+
+.ProseMirror .block-math-node-container:hover {
+  background-color: rgba(135, 131, 120, 0.1);
+}
+
+.ProseMirror .block-math-content {
+  display: block;
+  text-align: center;
+  min-height: 2em;
+  cursor: pointer;
+  overflow-x: auto;
+}
+
+.ProseMirror .block-math-edit-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #ccc;
+  background-color: white;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 0;
+  line-height: 1;
+}
+
+.ProseMirror .block-math-node-container:hover .block-math-edit-button {
+  display: flex;
+}
+
+.ProseMirror .block-math-edit-button:hover {
+  background-color: #f5f5f5;
+  border-color: #999;
+}
+
+.ProseMirror .block-math-node-editing {
+  display: block;
+  margin: 1em 0;
+}
+
+.ProseMirror .block-math-input {
+  outline: none;
+  border: 1px solid #ccc;
+  border-radius: 0.5em;
+  padding: 1em;
+  font-family: monospace;
+  font-size: 0.9em;
+  width: 100%;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.ProseMirror .block-math-input:focus {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+}

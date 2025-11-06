@@ -5,10 +5,10 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import type { MarkdownNodeSpec } from 'tiptap-markdown';
 
-// Math node component with edit capability
-function MathNodeView({ node, updateAttributes, deleteNode }: any) {
+// Block Math node component with edit capability
+function BlockMathNodeView({ node, updateAttributes, deleteNode }: any) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(node.attrs.content);
   const { content } = node.attrs;
@@ -17,23 +17,23 @@ function MathNodeView({ node, updateAttributes, deleteNode }: any) {
     if (containerRef.current && content && !isEditing) {
       try {
         katex.render(content, containerRef.current, {
-          displayMode: false,
+          displayMode: true,
           throwOnError: false,
           errorColor: '#cc0000',
         });
       } catch (error) {
         console.error('KaTeX rendering error:', error);
         if (containerRef.current) {
-          containerRef.current.innerHTML = `<span style="color: red;">Error rendering math: ${content}</span>`;
+          containerRef.current.innerHTML = `<div style="color: red;">Error rendering math: ${content}</div>`;
         }
       }
     }
   }, [content, isEditing]);
 
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+    if (isEditing && textareaRef.current) {
+      textareaRef.current.focus();
+      textareaRef.current.select();
     }
   }, [isEditing]);
 
@@ -52,10 +52,7 @@ function MathNodeView({ node, updateAttributes, deleteNode }: any) {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSave();
-    } else if (e.key === 'Escape') {
+    if (e.key === 'Escape') {
       setIsEditing(false);
       setEditValue(content);
     }
@@ -63,46 +60,48 @@ function MathNodeView({ node, updateAttributes, deleteNode }: any) {
 
   if (isEditing) {
     return (
-      <NodeViewWrapper className="math-node-editing">
-        <input
-          ref={inputRef}
-          type="text"
+      <NodeViewWrapper className="block-math-node-editing">
+        <textarea
+          ref={textareaRef}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleSave}
-          className="math-input"
+          className="block-math-input"
           placeholder="Enter LaTeX formula..."
+          rows={3}
         />
       </NodeViewWrapper>
     );
   }
 
   return (
-    <NodeViewWrapper className="math-node-wrapper">
-      <span className="math-node-container">
+    <NodeViewWrapper className="block-math-node-wrapper" style={{ display: 'block' }}>
+      <div className="block-math-node-container">
         <div
           ref={containerRef}
-          className="math-content"
+          className="block-math-content"
           onClick={handleDoubleClick}
+          style={{ display: 'block', textAlign: 'center' }}
         />
         <button
           onClick={handleDoubleClick}
-          className="math-edit-button"
+          className="block-math-edit-button"
           title="Edit formula"
         >
           ✎
         </button>
-      </span>
+      </div>
     </NodeViewWrapper>
   );
 }
 
-export const MathExtension = Node.create({
-  name: 'math',
-  group: 'inline',
-  inline: true,
+export const BlockMathExtension = Node.create({
+  name: 'blockMath',
+  group: 'block',
+  content: '',
   atom: true,
+  draggable: false,
 
   addAttributes() {
     return {
@@ -115,7 +114,7 @@ export const MathExtension = Node.create({
   parseHTML() {
     return [
       {
-        tag: 'span[data-type="math"]',
+        tag: 'div[data-type="block-math"]',
         getAttrs: (node) => {
           if (typeof node === 'string') return false;
           const element = node as HTMLElement;
@@ -129,10 +128,10 @@ export const MathExtension = Node.create({
 
   renderHTML({ node, HTMLAttributes }) {
     return [
-      'span',
+      'div',
       mergeAttributes(
         {
-          'data-type': 'math',
+          'data-type': 'block-math',
           'data-content': node.attrs.content,
         },
         HTMLAttributes
@@ -141,12 +140,12 @@ export const MathExtension = Node.create({
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(MathNodeView);
+    return ReactNodeViewRenderer(BlockMathNodeView);
   },
 
   addCommands() {
     return {
-      insertMath:
+      insertBlockMath:
         (attrs: { content: string }) =>
           ({ commands }: any) => {
             return commands.insertContent({
@@ -162,48 +161,53 @@ export const MathExtension = Node.create({
     return {
       markdown: {
         serialize(state: any, node: any) {
-          state.write('$' + node.attrs.content + '$');
+          state.write('$$\n' + node.attrs.content + '\n$$');
+          state.closeBlock(node);
         },
         parse: {
           setup(markdownit: any) {
-            markdownit.inline.ruler.before('escape', 'math_inline', (state: any, silent: any) => {
-              if (state.src[state.pos] !== '$') return false;
+            markdownit.block.ruler.before('fence', 'math_block', (state: any, startLine: any, endLine: any, silent: any) => {
+              const start = state.bMarks[startLine] + state.tShift[startLine];
+              const max = state.eMarks[startLine];
               
-              const start = state.pos + 1;
-              let end = start;
+              if (start + 2 > max) return false;
+              if (state.src.slice(start, start + 2) !== '$$') return false;
+              
+              let nextLine = startLine;
               let foundEnd = false;
               
-              while (end < state.src.length) {
-                if (state.src[end] === '$' && state.src[end - 1] !== '\\') {
+              while (nextLine < endLine) {
+                nextLine++;
+                if (nextLine >= endLine) break;
+                
+                const lineStart = state.bMarks[nextLine] + state.tShift[nextLine];
+                const lineMax = state.eMarks[nextLine];
+                const lineText = state.src.slice(lineStart, lineMax);
+                
+                if (lineText.trim() === '$$') {
                   foundEnd = true;
                   break;
                 }
-                end++;
               }
               
               if (!foundEnd) return false;
               
-              const content = state.src.slice(start, end);
+              const content = state.getLines(startLine + 1, nextLine, 0, false).trim();
               
               if (!silent) {
-                const token = state.push('math_inline', 'span', 0);
+                const token = state.push('math_block', 'div', 0);
                 token.content = content;
-                token.markup = '$';
+                token.markup = '$$';
+                token.map = [startLine, nextLine + 1];
               }
               
-              state.pos = end + 1;
+              state.line = nextLine + 1;
               return true;
             });
             
-            markdownit.renderer.rules.math_inline = (tokens: any, idx: any) => {
-              return `<span data-type="math" data-content="${tokens[idx].content}"></span>`;
+            markdownit.renderer.rules.math_block = (tokens: any, idx: any) => {
+              return `<div data-type="block-math" data-content="${tokens[idx].content}"></div>`;
             };
-          },
-          updateDOM(element: HTMLElement) {
-            const content = element.getAttribute('data-content');
-            if (content) {
-              element.setAttribute('data-content', content);
-            }
           },
         },
       } as MarkdownNodeSpec,

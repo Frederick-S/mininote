@@ -160,8 +160,8 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
       searchTerms: ['table', 'grid', 'spreadsheet'],
     },
     {
-      title: 'Math Formula',
-      description: 'Insert a mathematical expression',
+      title: 'Inline Math',
+      description: 'Insert an inline mathematical expression',
       icon: 'Sigma',
       command: ({ editor, range }) => {
         const formula = window.prompt('Enter LaTeX formula (e.g., E = mc^2):');
@@ -170,7 +170,20 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
           (editor.commands as any).insertMath({ content: formula });
         }
       },
-      searchTerms: ['math', 'latex', 'formula', 'equation'],
+      searchTerms: ['math', 'latex', 'formula', 'equation', 'inline'],
+    },
+    {
+      title: 'Block Math',
+      description: 'Insert a block mathematical expression',
+      icon: 'Sigma',
+      command: ({ editor, range }) => {
+        const formula = window.prompt('Enter LaTeX formula (e.g., \\int_0^\\infty e^{-x} dx):');
+        if (formula) {
+          editor.chain().focus().deleteRange(range).run();
+          (editor.commands as any).insertBlockMath({ content: formula });
+        }
+      },
+      searchTerms: ['math', 'latex', 'formula', 'equation', 'block', 'display'],
     },
     {
       title: 'Mermaid Diagram',
