@@ -23,7 +23,8 @@ describe('SlashCommandMenu', () => {
       expect(screen.getByText('Heading 2')).toBeDefined();
       expect(screen.getByText('Heading 3')).toBeDefined();
       expect(screen.getByText('Bullet List')).toBeDefined();
-      expect(screen.getByText('Math Formula')).toBeDefined();
+      expect(screen.getByText('Inline Math')).toBeDefined();
+      expect(screen.getByText('Block Math')).toBeDefined();
     });
 
     it('filters by exact match at start', () => {
@@ -66,7 +67,8 @@ describe('SlashCommandMenu', () => {
         />
       );
 
-      expect(screen.getByText('Math Formula')).toBeDefined();
+      expect(screen.getByText('Inline Math')).toBeDefined();
+      expect(screen.getByText('Block Math')).toBeDefined();
       expect(screen.queryByText('Heading 3')).toBeNull();
     });
 
