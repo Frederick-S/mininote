@@ -1,12 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Clock, RotateCcw, Eye, GitCompare, Loader2 } from 'lucide-react';
-import { marked } from 'marked';
 import { usePageVersions, useRestorePageVersion } from '@/hooks/usePageVersions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TipTapEditor } from '@/components/editor/TipTapEditor';
 import { VersionComparison } from './VersionComparison';
 import type { PageVersionData } from '@/types/database';
 
@@ -29,12 +29,6 @@ export function VersionHistory({ pageId, currentVersion, onVersionRestore }: Ver
   } | null>(null);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [versionToRestore, setVersionToRestore] = useState<PageVersionData | null>(null);
-
-  // Convert markdown to HTML for viewing
-  const viewingVersionHtml = useMemo(() => {
-    if (!viewingVersion?.content) return '';
-    return marked(viewingVersion.content, { async: false }) as string;
-  }, [viewingVersion?.content]);
 
   const handleViewVersion = (version: PageVersionData) => {
     setViewingVersion(version);
@@ -247,13 +241,12 @@ export function VersionHistory({ pageId, currentVersion, onVersionRestore }: Ver
               {viewingVersion && formatDate(viewingVersion.created_at)}
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[calc(80vh-200px)] overflow-hidden">
-            <ScrollArea className="h-full pr-4">
-              <div
-                className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: viewingVersionHtml }}
-              />
-            </ScrollArea>
+          <div className="max-h-[calc(80vh-200px)] overflow-auto">
+            <TipTapEditor
+              content={viewingVersion?.content || ''}
+              onChange={() => {}}
+              editable={false}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setViewingVersion(null)}>
