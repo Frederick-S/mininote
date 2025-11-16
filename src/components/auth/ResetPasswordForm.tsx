@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -15,7 +15,7 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import type { AuthError } from '@/types';
 
 const resetPasswordSchema = z
@@ -43,6 +43,8 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
   const [resetComplete, setResetComplete] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [sessionError, setSessionError] = useState('');
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
@@ -52,11 +54,98 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
     },
   });
 
+  // Check if user has valid session from reset link
+  useEffect(() => {
+    const validateSession = async () => {
+      try {
+        // First, check if Supabase already established a session from the URL
+        // (detectSessionInUrl: true does this automatically)
+        const { data: { session } } = await supabase.auth.getSession();
+
+        console.log('Existing session:', session);
+
+        if (session) {
+          // Session was already established by Supabase's detectSessionInUrl
+          console.log('Session already established by Supabase:', session.user?.email);
+          setCheckingSession(false);
+          return;
+        }
+
+        // If no session exists, try to extract tokens from URL manually
+        const fullHash = window.location.hash;
+        console.log('Full hash:', fullHash);
+
+        // Extract the auth params after the second #
+        const hashParts = fullHash.split('#');
+        const authHash = hashParts.length > 2 ? hashParts[2] : hashParts[1];
+
+        console.log('Auth hash:', authHash);
+
+        const hashParams = new URLSearchParams(authHash);
+        const hasAccessToken = hashParams.has('access_token');
+        const tokenType = hashParams.get('type');
+
+        console.log('Hash params:', {
+          hasAccessToken,
+          tokenType,
+          accessToken: hashParams.get('access_token')?.substring(0, 20) + '...',
+        });
+
+        if (!hasAccessToken) {
+          setSessionError('Invalid reset link. Please click the complete reset link from your email.');
+          setCheckingSession(false);
+          return;
+        }
+
+        // Manually set the session using the tokens from URL
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          console.log('Setting session manually with tokens from URL');
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (error) {
+            console.error('Error setting session:', error);
+            setSessionError('Unable to establish session: ' + error.message);
+          } else if (!data.session) {
+            console.error('No session returned after setSession');
+            setSessionError('Unable to establish session. The token may have expired.');
+          } else {
+            console.log('Session established successfully:', data.session.user?.email);
+          }
+        } else {
+          setSessionError('Reset link is missing required tokens.');
+        }
+      } catch (err) {
+        console.error('Mount error:', err);
+        setSessionError('An error occurred while validating the session');
+      } finally {
+        setCheckingSession(false);
+      }
+    };
+
+    validateSession();
+  }, []);
+
   const onSubmit = async (values: ResetPasswordFormValues) => {
     setError(null);
     setIsResetting(true);
 
     try {
+      // Verify we still have a session before attempting password update
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        setError('Session has expired. Please request a new password reset.');
+        setSessionError('Session has expired');
+        setIsResetting(false);
+        return;
+      }
+
       const { error: updateError } = await supabase.auth.updateUser({
         password: values.password,
       });
@@ -66,6 +155,12 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
       }
 
       setResetComplete(true);
+
+      // Sign out to clear the recovery session
+      await supabase.auth.signOut();
+
+      // Clear the hash to remove recovery tokens
+      window.location.hash = '';
 
       if (onSuccess) {
         setTimeout(onSuccess, 2000);
@@ -78,6 +173,46 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
     }
   };
 
+  // Loading State
+  if (checkingSession) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardContent className="pt-6">
+          <div className="text-center space-y-4">
+            <Loader2 className="w-16 h-16 mx-auto animate-spin text-primary" />
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold">Validating...</h2>
+              <p className="text-muted-foreground">
+                Please wait while we verify your reset link.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Error State
+  if (sessionError) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardContent className="pt-6">
+          <div className="text-center space-y-4">
+            <XCircle className="w-16 h-16 mx-auto text-destructive" />
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold">Invalid or Expired Link</h2>
+              <p className="text-muted-foreground">{sessionError}</p>
+            </div>
+            <Button onClick={() => window.location.href = '/'}>
+              Return to Login
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Success State
   if (resetComplete) {
     return (
       <Card className="w-full max-w-md">
@@ -96,6 +231,7 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
     );
   }
 
+  // Reset Password Form
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
@@ -157,6 +293,12 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
             </Button>
           </form>
         </Form>
+
+        <div className="mt-4 text-center">
+          <Button variant="link" onClick={() => window.location.href = '/'}>
+            Return to Login
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import {
   SignUpForm,
   LoginForm,
@@ -36,12 +36,24 @@ function App() {
 
   // Check if this is a password reset flow
   useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const type = hashParams.get('type');
+    const checkPasswordReset = () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const type = hashParams.get('type');
+      
+      if (type === 'recovery') {
+        setIsPasswordReset(true);
+      }
+    };
+
+    // Check immediately
+    checkPasswordReset();
+
+    // Also listen for hash changes (in case Supabase modifies the URL)
+    window.addEventListener('hashchange', checkPasswordReset);
     
-    if (type === 'recovery') {
-      setIsPasswordReset(true);
-    }
+    return () => {
+      window.removeEventListener('hashchange', checkPasswordReset);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -54,7 +66,7 @@ function App() {
   };
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="min-h-screen bg-background">
         {/* Header - only show when logged in and not in password reset mode */}
         {user && !isPasswordReset && (
@@ -96,8 +108,8 @@ function App() {
               onSuccess={() => {
                 setIsPasswordReset(false);
                 setView('login');
-                // Clear the hash from URL
-                window.history.replaceState(null, '', window.location.pathname);
+                // Clear the hash to remove recovery type
+                window.location.hash = '';
               }}
             />
           </div>
@@ -167,6 +179,21 @@ function App() {
             ) : (
               <Routes>
                 <Route path="/" element={<Navigate to="/notebooks" replace />} />
+                <Route 
+                  path="/reset-password" 
+                  element={
+                    <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+                      <ResetPasswordForm
+                        onSuccess={() => {
+                          setIsPasswordReset(false);
+                          setView('login');
+                          // Clear the hash to remove recovery type
+                          window.location.hash = '';
+                        }}
+                      />
+                    </div>
+                  } 
+                />
                 <Route path="/notebooks" element={<NotebooksPage />} />
                 <Route path="/notebooks/new" element={<NotebookCreatePage />} />
                 <Route path="/notebooks/:notebookId" element={<NotebookViewPage />} />
@@ -180,7 +207,7 @@ function App() {
         )}
       </main>
     </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

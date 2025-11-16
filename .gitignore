@@ -31,3 +31,4 @@ dist-ssr
 
 # OS generated files
 Thumbs.db
+.qoder/settings.json
