@@ -119,7 +119,7 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      flowType: 'pkce'
+      flowType: 'implicit' // Use implicit flow to allow password reset links to work across browsers
     }
   }
 );
