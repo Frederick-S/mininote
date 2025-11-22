@@ -60,7 +60,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="pl-9 pr-9"
+          className="pl-9 pr-9 border-border hover:border-border focus-visible:border-border focus-visible:ring-0 focus-visible:ring-offset-0"
         />
         {query && (
           <Button
@@ -78,7 +78,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         value={scope}
         onValueChange={(value) => setScope(value as SearchScope)}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-[180px] hover:border-border focus:border-border focus:ring-0 focus:ring-offset-0">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

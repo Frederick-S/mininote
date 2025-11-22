@@ -144,7 +144,7 @@
   - Build VersionComparison component for diff viewing
   - _Requirements: 11.2, 11.3, 11.4_
 
-- [ ] 10. Implement search functionality
+- [-] 10. Implement search functionality
 - [x] 10.1 Create search infrastructure
   - Implement PostgreSQL full-text search queries
   - Add search scope selection (current notebook vs all)
