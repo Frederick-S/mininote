@@ -125,7 +125,7 @@ function PageTreeItem({
         {isDropTarget && dropTarget?.position === 'before' && (
           <div className="absolute -top-0.5 left-0 right-0 h-0.5 bg-primary z-10 pointer-events-none">
             <div className="absolute -top-2 right-2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded whitespace-nowrap">
-              Drop as sibling (above)
+              Drop as sibling
             </div>
           </div>
         )}
@@ -189,7 +189,7 @@ function PageTreeItem({
       {isDropTarget && dropTarget?.position === 'after' && (
         <div className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-primary z-10 pointer-events-none">
           <div className="absolute -top-2 right-2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded whitespace-nowrap">
-            Drop as sibling (below)
+            Drop as sibling
           </div>
         </div>
       )}
