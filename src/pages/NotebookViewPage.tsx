@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { marked } from 'marked';
 import { useNotebook } from '../hooks/useNotebooks';
-import { usePagesHierarchy } from '../hooks/usePages';
+import { usePagesHierarchy, useMovePage } from '../hooks/usePages';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -45,6 +45,7 @@ export function NotebookViewPage() {
   };
 
   const { data: pages, isLoading: pagesLoading } = usePagesHierarchy(notebookId);
+  const movePage = useMovePage();
 
   const flattenPages = (pageList: any[]): PageData[] => {
     const result: PageData[] = [];
@@ -93,6 +94,19 @@ export function NotebookViewPage() {
   const handlePageDeleted = () => {
     navigate(`/notebooks/${notebookId}`);
     setShowDeleteDialog(false);
+  };
+
+  const handlePageMove = async (pageId: string, newParentId: string | null, position?: 'before' | 'after') => {
+    console.log('handlePageMove called:', { pageId, newParentId, position });
+    try {
+      await movePage.mutateAsync({
+        id: pageId,
+        parent_page_id: newParentId,
+      });
+      console.log('Page moved successfully');
+    } catch (error) {
+      console.error('Failed to move page:', error);
+    }
   };
 
   const handleEditClick = () => {
@@ -226,11 +240,17 @@ export function NotebookViewPage() {
                     Click to view, drag to reorganize
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="relative">
+                  {movePage.isPending && (
+                    <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10 rounded-lg">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                    </div>
+                  )}
                   <PageTree
                     pages={pages}
                     selectedPageId={selectedPageId}
                     onPageSelect={handlePageSelect}
+                    onPageMove={handlePageMove}
                     className="max-h-[600px] overflow-y-auto"
                   />
                 </CardContent>

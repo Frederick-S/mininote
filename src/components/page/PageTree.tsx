@@ -10,7 +10,7 @@ interface PageTreeProps {
   pages: PageWithChildren[];
   selectedPageId?: string;
   onPageSelect?: (pageId: string) => void;
-  onPageMove?: (pageId: string, newParentId: string | null) => void;
+  onPageMove?: (pageId: string, newParentId: string | null, position?: 'before' | 'after') => void;
   className?: string;
 }
 
@@ -19,11 +19,13 @@ interface PageTreeItemProps {
   level: number;
   selectedPageId?: string;
   onPageSelect?: (pageId: string) => void;
-  onPageMove?: (pageId: string, newParentId: string | null) => void;
+  onPageMove?: (pageId: string, newParentId: string | null, position?: 'before' | 'after') => void;
   onDragStart?: (pageId: string) => void;
-  onDragOver?: (e: React.DragEvent, pageId: string) => void;
-  onDrop?: (e: React.DragEvent, targetPageId: string) => void;
+  onDragOver?: (e: React.DragEvent, pageId: string, position: 'before' | 'after' | 'child') => void;
+  onDrop?: (e: React.DragEvent, targetPageId: string, position: 'before' | 'after' | 'child') => void;
   isDragging?: boolean;
+  draggedPageId?: string | null;
+  dropTarget?: { pageId: string; position: 'before' | 'after' | 'child' } | null;
 }
 
 function PageTreeItem({
@@ -36,10 +38,13 @@ function PageTreeItem({
   onDragOver,
   onDrop,
   isDragging,
+  draggedPageId,
+  dropTarget,
 }: PageTreeItemProps) {
   const [isOpen, setIsOpen] = useState(true);
   const hasChildren = page.children && page.children.length > 0;
   const isSelected = selectedPageId === page.id;
+  const isDropTarget = dropTarget?.pageId === page.id;
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -56,14 +61,55 @@ function PageTreeItem({
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Don't allow dropping on itself
+    if (draggedPageId === page.id) {
+      e.dataTransfer.dropEffect = 'none';
+      console.log('Blocked drop on self:', page.title);
+      return;
+    }
+    
     e.dataTransfer.dropEffect = 'move';
-    onDragOver?.(e, page.id);
+    
+    // Calculate position based on mouse Y position within the element
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const height = rect.height;
+    
+    let position: 'before' | 'after' | 'child';
+    if (y < height * 0.25) {
+      position = 'before';
+    } else if (y > height * 0.75) {
+      position = 'after';
+    } else {
+      position = 'child';
+    }
+    
+    // console.log('DragOver on', page.title, position, draggedPageId);
+    onDragOver?.(e, page.id, position);
   };
 
   const handleDrop = (e: React.DragEvent) => {
+    console.log('PageTreeItem handleDrop:', page.title);
     e.preventDefault();
     e.stopPropagation();
-    onDrop?.(e, page.id);
+    
+    // Calculate position based on mouse Y position within the element
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const height = rect.height;
+    
+    let position: 'before' | 'after' | 'child';
+    if (y < height * 0.25) {
+      position = 'before';
+    } else if (y > height * 0.75) {
+      position = 'after';
+    } else {
+      position = 'child';
+    }
+    
+    // console.log('PageTreeItem handleDrop:', page.title);
+    onDrop?.(e, page.id, position);
   };
 
   return (
@@ -74,18 +120,34 @@ function PageTreeItem({
       )}
       style={{ paddingLeft: level > 0 ? `${level * 20}px` : '0' }}
     >
-      <div
-        className={cn(
-          'group flex items-center justify-start gap-1 py-1 px-2 rounded-md hover:bg-accent cursor-pointer transition-colors',
-          isSelected && 'bg-accent',
-          level > 0 && 'border-l-2 border-muted ml-2'
+      <div className="relative">
+        {/* Drop indicator - before */}
+        {isDropTarget && dropTarget?.position === 'before' && (
+          <div className="absolute -top-0.5 left-0 right-0 h-0.5 bg-primary z-10 pointer-events-none">
+            <div className="absolute -top-2 right-2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded whitespace-nowrap">
+              Drop as sibling (above)
+            </div>
+          </div>
         )}
-        onClick={handleClick}
-        draggable
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-      >
+        
+        <div
+          className={cn(
+            'group flex items-center justify-start gap-1 py-1 px-2 rounded-md hover:bg-accent cursor-pointer transition-colors relative',
+            isSelected && 'bg-accent',
+            level > 0 && 'border-l-2 border-muted ml-2',
+            isDropTarget && dropTarget?.position === 'child' && 'ring-2 ring-primary bg-primary/10'
+          )}
+          onClick={handleClick}
+          draggable
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
+          {isDropTarget && dropTarget?.position === 'child' && (
+            <div className="absolute -right-2 top-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full whitespace-nowrap z-10 pointer-events-none">
+              Drop as child
+            </div>
+          )}
         {/* Expand/Collapse Button */}
         {hasChildren ? (
           <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -122,30 +184,42 @@ function PageTreeItem({
         {/* Page Title */}
         <span className="flex-1 truncate text-sm">{page.title}</span>
       </div>
-
-      {/* Children */}
-      {hasChildren && (
-        <Collapsible open={isOpen}>
-          <CollapsibleContent>
-            <div className="mt-1">
-              {page.children!.map((child) => (
-                <PageTreeItem
-                  key={child.id}
-                  page={child}
-                  level={level + 1}
-                  selectedPageId={selectedPageId}
-                  onPageSelect={onPageSelect}
-                  onPageMove={onPageMove}
-                  onDragStart={onDragStart}
-                  onDragOver={onDragOver}
-                  onDrop={onDrop}
-                />
-              ))}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+      
+      {/* Drop indicator - after */}
+      {isDropTarget && dropTarget?.position === 'after' && (
+        <div className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-primary z-10 pointer-events-none">
+          <div className="absolute -top-2 right-2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded whitespace-nowrap">
+            Drop as sibling (below)
+          </div>
+        </div>
       )}
     </div>
+
+    {/* Children */}
+    {hasChildren && (
+      <Collapsible open={isOpen}>
+        <CollapsibleContent>
+          <div className="mt-1">
+            {page.children!.map((child) => (
+              <PageTreeItem
+                key={child.id}
+                page={child}
+                level={level + 1}
+                selectedPageId={selectedPageId}
+                onPageSelect={onPageSelect}
+                onPageMove={onPageMove}
+                onDragStart={onDragStart}
+                onDragOver={onDragOver}
+                onDrop={onDrop}
+                draggedPageId={draggedPageId}
+                dropTarget={dropTarget}
+              />
+            ))}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    )}
+  </div>
   );
 }
 
@@ -157,16 +231,17 @@ export function PageTree({
   className,
 }: PageTreeProps) {
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ pageId: string; position: 'before' | 'after' | 'child' } | null>(null);
 
   const handleDragStart = (pageId: string) => {
     setDraggedPageId(pageId);
   };
 
-  const handleDragOver = (_e: React.DragEvent, _pageId: string) => {
-    // Drag over handling for visual feedback can be added here
+  const handleDragOver = (_e: React.DragEvent, pageId: string, position: 'before' | 'after' | 'child') => {
+    setDropTarget({ pageId, position });
   };
 
-  const handleDrop = (e: React.DragEvent, targetPageId: string) => {
+  const handleDrop = (e: React.DragEvent, targetPageId: string, position: 'before' | 'after' | 'child') => {
     const draggedId = e.dataTransfer.getData('text/plain');
     
     if (draggedId && draggedId !== targetPageId) {
@@ -192,15 +267,42 @@ export function PageTree({
 
       // Prevent moving a page under itself or its descendants
       if (!isDescendant(pages, targetPageId, draggedId)) {
-        onPageMove?.(draggedId, targetPageId);
+        if (position === 'child') {
+          // Drop as child - set target as parent
+          onPageMove?.(draggedId, targetPageId);
+        } else {
+          // Drop as sibling - need to find the parent
+          // This makes the dragged page a sibling of the target
+          // This makes the dragged page a sibling of the target
+          const findParent = (pages: PageWithChildren[], targetId: string, parentId: string | null = null): string | null | undefined => {
+            for (const page of pages) {
+              if (page.id === targetId) return parentId;
+              if (page.children) {
+                const found = findParent(page.children, targetId, page.id);
+                if (found !== undefined) return found;
+              }
+            }
+            return undefined;
+          };
+          
+          const targetParent = findParent(pages, targetPageId);
+          
+          if (targetParent !== undefined) {
+            onPageMove?.(draggedId, targetParent, position);
+          } else {
+            console.warn('Could not find parent for target page:', targetPageId);
+          }
+        }
       }
     }
 
     setDraggedPageId(null);
+    setDropTarget(null);
   };
 
   const handleDragEnd = () => {
     setDraggedPageId(null);
+    setDropTarget(null);
   };
 
   if (!pages || pages.length === 0) {
@@ -226,6 +328,8 @@ export function PageTree({
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             isDragging={draggedPageId === page.id}
+            draggedPageId={draggedPageId}
+            dropTarget={dropTarget}
           />
         ))}
       </div>
