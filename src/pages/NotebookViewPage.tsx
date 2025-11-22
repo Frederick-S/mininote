@@ -26,7 +26,7 @@ import type { NotebookData, PageData } from '../types/database';
 export function NotebookViewPage() {
   const { notebookId, pageId } = useParams<{ notebookId: string; pageId?: string }>();
   const navigate = useNavigate();
-  const location = window.location.pathname;
+  const location = window.location.hash;
   const isEditMode = location.endsWith('/edit');
 
   const [showVersionHistory, setShowVersionHistory] = useState(false);
