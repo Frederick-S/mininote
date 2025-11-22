@@ -108,7 +108,7 @@ function PageTreeItem({
       position = 'child';
     }
     
-    // console.log('PageTreeItem handleDrop:', page.title);
+    // console.log('PageTreeItem handleDrop:', { title: page.title, position, y, rect, clientY: e.clientY });
     onDrop?.(e, page.id, position);
   };
 
