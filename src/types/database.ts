@@ -47,7 +47,8 @@ export interface PageWithNotebook extends PageData {
  * Search result with highlighting
  */
 export interface EnhancedSearchResult extends SearchResult {
-  highlights?: string[];
+  highlights: string[];
+  snippet: string;
   page_path?: string[];
 }
 

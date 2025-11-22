@@ -209,6 +209,56 @@ CREATE POLICY "Users can delete their own attachments"
   USING (auth.uid() = user_id);
 
 -- ============================================
+-- SEARCH FUNCTIONS
+-- ============================================
+
+-- Function for ranked full-text search
+-- This function provides better search ranking using ts_rank
+CREATE OR REPLACE FUNCTION search_pages_ranked(
+  search_query TEXT,
+  notebook_filter UUID DEFAULT NULL,
+  result_limit INTEGER DEFAULT 20,
+  result_offset INTEGER DEFAULT 0
+)
+RETURNS TABLE (
+  page_id UUID,
+  page_title TEXT,
+  page_content TEXT,
+  notebook_id UUID,
+  notebook_title TEXT,
+  rank REAL
+) 
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.id AS page_id,
+    p.title AS page_title,
+    p.content AS page_content,
+    p.notebook_id,
+    n.title AS notebook_title,
+    ts_rank(p.searchable_content, websearch_to_tsquery('english', search_query)) AS rank
+  FROM pages p
+  INNER JOIN notebooks n ON p.notebook_id = n.id
+  WHERE 
+    p.user_id = auth.uid()
+    AND p.searchable_content @@ websearch_to_tsquery('english', search_query)
+    AND (notebook_filter IS NULL OR p.notebook_id = notebook_filter)
+  ORDER BY rank DESC, p.updated_at DESC
+  LIMIT result_limit
+  OFFSET result_offset;
+END;
+$$;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION search_pages_ranked TO authenticated;
+
+-- Add comment for documentation
+COMMENT ON FUNCTION search_pages_ranked IS 'Performs ranked full-text search across pages with optional notebook filtering';
+
+-- ============================================
 -- STORAGE SETUP
 -- ============================================
 -- Note: Storage bucket and policies must be created through Supabase Dashboard

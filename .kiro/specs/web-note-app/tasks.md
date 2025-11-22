@@ -145,7 +145,7 @@
   - _Requirements: 11.2, 11.3, 11.4_
 
 - [ ] 10. Implement search functionality
-- [ ] 10.1 Create search infrastructure
+- [x] 10.1 Create search infrastructure
   - Implement PostgreSQL full-text search queries
   - Add search scope selection (current notebook vs all)
   - Create search result ranking using ts_rank

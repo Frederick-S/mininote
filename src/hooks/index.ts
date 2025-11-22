@@ -46,3 +46,9 @@ export {
   useDeletePageAttachments,
   useBatchUploadAttachments,
 } from './useAttachments';
+
+// Search hooks
+export {
+  useSearch,
+  useSearchHighlight,
+} from './useSearch';
