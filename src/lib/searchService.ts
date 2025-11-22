@@ -182,16 +182,25 @@ class SearchService {
   private generateSnippet(content: string, query: string): string {
     const searchTerms = this.parseSearchQuery(query);
     
-    // Find the first occurrence of any search term
+    // If no search terms, return beginning of content
+    if (searchTerms.length === 0) {
+      return this.truncateText(content, this.SNIPPET_LENGTH);
+    }
+    
+    // Find the first occurrence of any search term (case insensitive)
     let firstMatchIndex = -1;
+    let matchLength = 0;
     
     for (const term of searchTerms) {
-      const regex = new RegExp(`\\b${this.escapeRegex(term)}`, 'i');
-      const match = content.match(regex);
+      // Try to find the term anywhere in the content (not just word boundaries)
+      const lowerContent = content.toLowerCase();
+      const lowerTerm = term.toLowerCase();
+      const index = lowerContent.indexOf(lowerTerm);
       
-      if (match && match.index !== undefined) {
-        if (firstMatchIndex === -1 || match.index < firstMatchIndex) {
-          firstMatchIndex = match.index;
+      if (index !== -1) {
+        if (firstMatchIndex === -1 || index < firstMatchIndex) {
+          firstMatchIndex = index;
+          matchLength = term.length;
         }
       }
     }
@@ -201,9 +210,12 @@ class SearchService {
       return this.truncateText(content, this.SNIPPET_LENGTH);
     }
     
-    // Calculate snippet boundaries
-    const snippetStart = Math.max(0, firstMatchIndex - 50);
-    const snippetEnd = Math.min(content.length, firstMatchIndex + this.SNIPPET_LENGTH);
+    // Calculate snippet boundaries to center around the match
+    const contextBefore = 60; // Characters before the match
+    const contextAfter = this.SNIPPET_LENGTH - contextBefore - matchLength;
+    
+    const snippetStart = Math.max(0, firstMatchIndex - contextBefore);
+    const snippetEnd = Math.min(content.length, firstMatchIndex + matchLength + contextAfter);
     
     let snippet = content.substring(snippetStart, snippetEnd);
     
@@ -227,7 +239,7 @@ class SearchService {
       .toLowerCase()
       .replace(/[^\w\s]/g, ' ')
       .split(/\s+/)
-      .filter(term => term.length > 2); // Ignore very short terms
+      .filter(term => term.length >= 2); // Ignore single character terms
   }
 
   /**

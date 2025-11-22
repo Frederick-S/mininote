@@ -76,13 +76,13 @@ describe('SearchService', () => {
       expect(terms).toContain('test');
     });
 
-    it('should filter out short terms', () => {
+    it('should filter out single character terms', () => {
       const query = 'a be cat';
       
       const terms = (searchService as any).parseSearchQuery(query);
       
       expect(terms).not.toContain('a');
-      expect(terms).not.toContain('be');
+      expect(terms).toContain('be');
       expect(terms).toContain('cat');
     });
 

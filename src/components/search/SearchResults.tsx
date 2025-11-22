@@ -159,7 +159,7 @@ const HighlightedText: React.FC<HighlightedTextProps> = ({ text, query }) => {
     .toLowerCase()
     .replace(/[^\w\s]/g, ' ')
     .split(/\s+/)
-    .filter((term) => term.length > 2);
+    .filter((term) => term.length >= 2);
 
   if (searchTerms.length === 0) {
     return <>{text}</>;
