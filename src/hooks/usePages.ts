@@ -183,6 +183,25 @@ export function useCreatePage() {
         throw error;
       }
       
+      // Save the initial version to page_versions
+      if (page) {
+        const newPage = page as any;
+        const { error: versionError } = await supabase
+          .from('page_versions')
+          .insert({
+            page_id: newPage.id,
+            title: newPage.title,
+            content: newPage.content,
+            version: newPage.version,
+            user_id: userId,
+          } as any);
+        
+        if (versionError) {
+          console.error('Failed to save initial version:', versionError);
+          // Don't throw - page was created successfully
+        }
+      }
+      
       return page;
     },
     onMutate: async (newPage) => {
@@ -300,6 +319,34 @@ export function useUpdatePage() {
         .single();
       
       const { data: page, error } = result;
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Save the new current version to page_versions as well
+      if (shouldCreateVersion && page && (data.title !== undefined || data.content !== undefined)) {
+        const contentChanged = data.content !== undefined && data.content !== currentPage.content;
+        const titleChanged = data.title !== undefined && data.title !== currentPage.title;
+        
+        if (contentChanged || titleChanged) {
+          const updatedPage = page as any;
+          const { error: currentVersionError } = await supabase
+            .from('page_versions')
+            .insert({
+              page_id: updatedPage.id,
+              title: updatedPage.title,
+              content: updatedPage.content,
+              version: updatedPage.version,
+              user_id: userId,
+            } as any);
+          
+          if (currentVersionError) {
+            console.error('Failed to save current version:', currentVersionError);
+            // Don't throw - this shouldn't block the update
+          }
+        }
+      }
       
       if (error) {
         throw error;
