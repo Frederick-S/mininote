@@ -72,12 +72,13 @@ function PageTreeItem({
         'select-none',
         isDragging && 'opacity-50'
       )}
+      style={{ paddingLeft: level > 0 ? `${level * 20}px` : '0' }}
     >
       <div
         className={cn(
           'group flex items-center justify-start gap-1 py-1 px-2 rounded-md hover:bg-accent cursor-pointer transition-colors',
           isSelected && 'bg-accent',
-          level > 0 && 'ml-2'
+          level > 0 && 'border-l-2 border-muted ml-2'
         )}
         onClick={handleClick}
         draggable
@@ -86,7 +87,7 @@ function PageTreeItem({
         onDrop={handleDrop}
       >
         {/* Expand/Collapse Button */}
-        {hasChildren && (
+        {hasChildren ? (
           <Collapsible open={isOpen} onOpenChange={setIsOpen}>
             <CollapsibleTrigger asChild>
               <Button
@@ -106,6 +107,8 @@ function PageTreeItem({
               </Button>
             </CollapsibleTrigger>
           </Collapsible>
+        ) : (
+          <div className="h-6 w-6 flex-shrink-0" />
         )}
 
         {/* Drag Handle */}
