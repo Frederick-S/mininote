@@ -174,60 +174,128 @@
   - Build export progress tracking and feedback
   - _Requirements: 10.1, 10.3, 10.5_
 
-- [ ] 12. Add comprehensive error handling and loading states
-- [ ] 12.1 Implement global error handling
+- [ ] 12. Implement markdown import with hierarchy and asset management
+- [ ] 12.1 Create import service infrastructure
+  - Build MarkdownImportService class with file tree parsing
+  - Implement recursive folder scanning for markdown files
+  - Create asset reference extraction using regex patterns
+  - Add path resolution for relative asset references
+  - _Requirements: 12.2, 12.3, 12.6_
+
+- [ ] 12.2 Implement asset upload and URL replacement
+  - Create asset file finder using webkitRelativePath
+  - Implement asset upload to Supabase Storage
+  - Build markdown content updater to replace local paths with URLs
+  - Add error handling for missing or failed asset uploads
+  - _Requirements: 12.6, 12.8_
+
+- [ ] 12.3 Build page hierarchy creation logic
+  - Implement page creation plan builder from file tree
+  - Create pages with proper parent-child relationships
+  - Maintain path-to-pageId mapping for hierarchy
+  - Handle nested folder structures correctly
+  - _Requirements: 12.4, 12.5_
+
+- [ ] 12.4 Create import UI components
+  - Build ImportDialog component with file/folder selection tabs
+  - Create FileDropzone component with drag-and-drop support
+  - Implement folder traversal using File System Access API
+  - Add webkitdirectory fallback for folder selection
+  - _Requirements: 12.1, 12.3_
+
+- [ ] 12.5 Add import progress tracking and feedback
+  - Implement progress calculation for asset uploads and page creation
+  - Create progress callback system with percentage updates
+  - Build ImportSummaryDialog showing pages created and assets uploaded
+  - Display errors for missing assets or failed operations
+  - _Requirements: 12.7, 12.8, 12.9_
+
+- [ ] 12.6 Write property test for single file import
+  - **Property 1: Single file import creates matching page**
+  - **Validates: Requirements 12.2**
+
+- [ ] 12.7 Write property test for folder scanning
+  - **Property 2: Folder scan discovers all markdown files**
+  - **Validates: Requirements 12.3**
+
+- [ ] 12.8 Write property test for folder hierarchy
+  - **Property 3: Folder import preserves hierarchy**
+  - **Validates: Requirements 12.4**
+
+- [ ] 12.9 Write property test for nested hierarchy
+  - **Property 4: Nested folder hierarchy preservation**
+  - **Validates: Requirements 12.5**
+
+- [ ] 12.10 Write property test for asset handling
+  - **Property 5: Asset references are detected and uploaded**
+  - **Validates: Requirements 12.6**
+
+- [ ] 12.11 Write property test for import progress
+  - **Property 6: Import progress is reported**
+  - **Validates: Requirements 12.7**
+
+- [ ] 12.12 Write property test for error handling
+  - **Property 7: Missing assets don't block import**
+  - **Validates: Requirements 12.8**
+
+- [ ] 12.13 Write property test for import summary
+  - **Property 8: Import summary accuracy**
+  - **Validates: Requirements 12.9**
+
+- [ ] 13. Add comprehensive error handling and loading states
+- [ ] 13.1 Implement global error handling
   - Create ErrorBoundary components for error catching
   - Build user-friendly error message system
   - Add retry mechanisms for failed operations
   - Implement error logging and monitoring
   - _Requirements: 8.4, 9.2_
 
-- [ ] 12.2 Add loading states and user feedback
+- [ ] 13.2 Add loading states and user feedback
   - Create loading spinners and skeleton screens
   - Implement progress indicators for long operations
   - Add success/error toast notifications
   - Build offline state handling
   - _Requirements: 8.3, 8.4_
 
-- [ ] 13. Implement responsive design and mobile optimization
-- [ ] 13.1 Optimize for mobile devices
+- [ ] 14. Implement responsive design and mobile optimization
+- [ ] 14.1 Optimize for mobile devices
   - Ensure responsive layout across all screen sizes
   - Implement touch-friendly interactions
   - Add mobile-specific navigation patterns
   - Optimize editor for mobile input
   - _Requirements: 8.1, 8.5_
 
-- [ ] 13.2 Add accessibility features
+- [ ] 14.2 Add accessibility features
   - Implement keyboard navigation throughout the app
   - Add proper ARIA labels and semantic HTML
   - Ensure color contrast and screen reader compatibility
   - Test with accessibility tools and guidelines
   - _Requirements: 8.5_
 
-- [ ] 14. Write comprehensive tests
-- [ ] 14.1 Create unit tests for components and utilities
+- [ ] 15. Write comprehensive tests
+- [ ] 15.1 Create unit tests for components and utilities
   - Write tests for all React components
   - Test custom hooks and utility functions
   - Mock Supabase client for testing
   - Achieve high test coverage for critical paths
   - _Requirements: All requirements validation_
 
-- [ ] 14.2 Implement integration and end-to-end tests
+- [ ] 15.2 Implement integration and end-to-end tests
   - Create integration tests for user workflows
   - Build end-to-end tests with Playwright
   - Test file upload and download functionality
   - Validate cross-browser compatibility
   - _Requirements: Complete user journey validation_
 
-- [ ] 15. Performance optimization and deployment preparation
-- [ ] 15.1 Optimize application performance
+- [ ] 16. Performance optimization and deployment preparation
+- [ ] 16.1 Optimize application performance
   - Implement code splitting and lazy loading
   - Optimize bundle size and loading times
   - Add performance monitoring and metrics
   - Optimize database queries and indexes
   - _Requirements: 8.1, 8.3_
 
-- [ ] 15.2 Prepare for production deployment
+- [ ] 16.2 Prepare for production deployment
   - Configure production environment variables
   - Set up CI/CD pipeline for automated deployment
   - Configure monitoring and logging

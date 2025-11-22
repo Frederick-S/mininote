@@ -853,6 +853,44 @@ class FileManagementService {
 }
 ```
 
+## Correctness Properties
+
+*A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+
+### Import Functionality Properties
+
+Property 1: Single file import creates matching page
+*For any* markdown file with content and filename, importing that file should create exactly one page where the page title matches the filename (without extension) and the page content matches the file content
+**Validates: Requirements 12.2**
+
+Property 2: Folder scan discovers all markdown files
+*For any* folder structure containing markdown files at various depths, the recursive scan should discover all markdown files regardless of nesting level
+**Validates: Requirements 12.3**
+
+Property 3: Folder import preserves hierarchy
+*For any* folder containing markdown files, importing should create a parent page named after the folder with child pages for each markdown file in that folder
+**Validates: Requirements 12.4**
+
+Property 4: Nested folder hierarchy preservation
+*For any* nested folder structure, the parent-child relationships in the file system should be preserved as parent-child page relationships in the database
+**Validates: Requirements 12.5**
+
+Property 5: Asset references are detected and uploaded
+*For any* markdown file containing local asset references (images, documents, videos), all asset references should be detected, the assets uploaded to storage, and the markdown updated with the new URLs
+**Validates: Requirements 12.6**
+
+Property 6: Import progress is reported
+*For any* import operation, progress callbacks should be invoked with increasing progress values from 0 to 100
+**Validates: Requirements 12.7**
+
+Property 7: Missing assets don't block import
+*For any* markdown file referencing non-existent assets, the import should complete successfully, create the page, and include the missing assets in the error summary
+**Validates: Requirements 12.8**
+
+Property 8: Import summary accuracy
+*For any* import operation, the summary should accurately report the number of pages created and assets uploaded matching the actual database and storage state
+**Validates: Requirements 12.9**
+
 ## Error Handling
 
 ### Error Categories
@@ -1016,5 +1054,646 @@ const searchPages = async (query: string, notebookId?: string) => {
   return data;
 };
 ```
+
+## Markdown Import with Hierarchy and Asset Management
+
+### Import Architecture
+
+The import system allows users to import markdown files or entire folder structures into notebooks while preserving hierarchy and automatically handling asset references. The system recursively scans folders, creates corresponding page structures, and uploads referenced local files to Supabase Storage.
+
+### Import Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant UI as Import Dialog
+    participant P as Import Parser
+    participant A as Asset Handler
+    participant S as Supabase Storage
+    participant D as Database
+    
+    U->>UI: Select File/Folder
+    UI->>P: Parse Structure
+    P->>P: Scan MD Files Recursively
+    P->>P: Build Hierarchy Map
+    P->>A: Extract Asset References
+    A->>A: Resolve Local Paths
+    A->>S: Upload Assets
+    S-->>A: Return URLs
+    A->>P: Update MD with URLs
+    P->>D: Create Pages with Hierarchy
+    D-->>UI: Return Results
+    UI-->>U: Show Import Summary
+```
+
+### Import Components
+
+#### 1. Import Dialog Component (shadcn/ui)
+
+```typescript
+interface ImportDialogProps {
+  notebookId: string;
+  onImportComplete: (summary: ImportSummary) => void;
+}
+
+interface ImportSummary {
+  pagesCreated: number;
+  assetsUploaded: number;
+  errors: ImportError[];
+}
+
+interface ImportError {
+  file: string;
+  message: string;
+  type: 'asset' | 'page' | 'parse';
+}
+
+const ImportDialog: React.FC<ImportDialogProps> = ({ notebookId, onImportComplete }) => {
+  const [importMode, setImportMode] = useState<'file' | 'folder'>('file');
+  const [isImporting, setIsImporting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  
+  const handleFileSelect = async (files: FileList | File[]) => {
+    setIsImporting(true);
+    const summary = await importService.importFiles(
+      Array.from(files),
+      notebookId,
+      (progress) => setProgress(progress)
+    );
+    setIsImporting(false);
+    onImportComplete(summary);
+  };
+  
+  return (
+    <Dialog>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Import Markdown Files</DialogTitle>
+        </DialogHeader>
+        <Tabs value={importMode} onValueChange={setImportMode}>
+          <TabsList>
+            <TabsTrigger value="file">Single File</TabsTrigger>
+            <TabsTrigger value="folder">Folder</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        {isImporting ? (
+          <Progress value={progress} />
+        ) : (
+          <FileDropzone onFilesSelected={handleFileSelect} />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+```
+
+#### 2. Import Service
+
+```typescript
+interface FileNode {
+  path: string;
+  name: string;
+  content: string;
+  isDirectory: boolean;
+  children: FileNode[];
+  assets: AssetReference[];
+}
+
+interface AssetReference {
+  originalPath: string;
+  markdownSyntax: string;
+  type: 'image' | 'document' | 'video' | 'other';
+  position: number;
+}
+
+interface PageCreationPlan {
+  title: string;
+  content: string;
+  parentPath?: string;
+  order: number;
+}
+
+class MarkdownImportService {
+  private readonly MARKDOWN_EXTENSIONS = ['.md', '.markdown'];
+  private readonly ASSET_PATTERNS = [
+    /!\[([^\]]*)\]\(([^)]+)\)/g,  // Images: ![alt](path)
+    /\[([^\]]+)\]\(([^)]+)\)/g,   // Links/files: [text](path)
+  ];
+  
+  async importFiles(
+    files: File[],
+    notebookId: string,
+    onProgress: (progress: number) => void
+  ): Promise<ImportSummary> {
+    const summary: ImportSummary = {
+      pagesCreated: 0,
+      assetsUploaded: 0,
+      errors: []
+    };
+    
+    try {
+      // Step 1: Build file tree structure
+      const fileTree = await this.buildFileTree(files);
+      
+      // Step 2: Parse markdown files and extract assets
+      const parsedFiles = await this.parseMarkdownFiles(fileTree);
+      
+      // Step 3: Create page hierarchy plan
+      const creationPlan = this.buildPageCreationPlan(parsedFiles);
+      
+      // Step 4: Upload assets and update references
+      const totalAssets = parsedFiles.reduce((sum, f) => sum + f.assets.length, 0);
+      let uploadedAssets = 0;
+      
+      for (const file of parsedFiles) {
+        const updatedContent = await this.processAssets(
+          file,
+          notebookId,
+          files,
+          (assetProgress) => {
+            uploadedAssets++;
+            const progress = (uploadedAssets / totalAssets) * 50; // First 50% for assets
+            onProgress(progress);
+          }
+        );
+        file.content = updatedContent;
+        summary.assetsUploaded += file.assets.length;
+      }
+      
+      // Step 5: Create pages with hierarchy
+      const pageMap = new Map<string, string>(); // path -> pageId
+      const totalPages = creationPlan.length;
+      
+      for (let i = 0; i < creationPlan.length; i++) {
+        const plan = creationPlan[i];
+        try {
+          const pageId = await this.createPage(
+            plan,
+            notebookId,
+            pageMap
+          );
+          pageMap.set(plan.title, pageId);
+          summary.pagesCreated++;
+          
+          const progress = 50 + ((i + 1) / totalPages) * 50; // Last 50% for pages
+          onProgress(progress);
+        } catch (error) {
+          summary.errors.push({
+            file: plan.title,
+            message: error.message,
+            type: 'page'
+          });
+        }
+      }
+      
+      onProgress(100);
+      return summary;
+      
+    } catch (error) {
+      summary.errors.push({
+        file: 'import',
+        message: error.message,
+        type: 'parse'
+      });
+      return summary;
+    }
+  }
+  
+  private async buildFileTree(files: File[]): Promise<FileNode[]> {
+    const tree: FileNode[] = [];
+    
+    for (const file of files) {
+      // Use webkitRelativePath for folder uploads, or name for single files
+      const path = (file as any).webkitRelativePath || file.name;
+      const parts = path.split('/');
+      
+      let currentLevel = tree;
+      let currentPath = '';
+      
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        currentPath = currentPath ? `${currentPath}/${part}` : part;
+        const isLastPart = i === parts.length - 1;
+        
+        let node = currentLevel.find(n => n.name === part);
+        
+        if (!node) {
+          node = {
+            path: currentPath,
+            name: part,
+            content: '',
+            isDirectory: !isLastPart,
+            children: [],
+            assets: []
+          };
+          currentLevel.push(node);
+        }
+        
+        if (isLastPart && this.isMarkdownFile(file.name)) {
+          node.content = await file.text();
+        }
+        
+        currentLevel = node.children;
+      }
+    }
+    
+    return tree;
+  }
+  
+  private async parseMarkdownFiles(tree: FileNode[]): Promise<FileNode[]> {
+    const markdownFiles: FileNode[] = [];
+    
+    const traverse = (nodes: FileNode[], parentPath: string = '') => {
+      for (const node of nodes) {
+        if (node.isDirectory) {
+          traverse(node.children, node.path);
+        } else if (this.isMarkdownFile(node.name)) {
+          node.assets = this.extractAssetReferences(node.content);
+          markdownFiles.push(node);
+        }
+      }
+    };
+    
+    traverse(tree);
+    return markdownFiles;
+  }
+  
+  private extractAssetReferences(content: string): AssetReference[] {
+    const assets: AssetReference[] = [];
+    
+    // Match image syntax: ![alt](path)
+    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    let match;
+    
+    while ((match = imageRegex.exec(content)) !== null) {
+      const [fullMatch, alt, path] = match;
+      
+      // Only process local file references (not URLs)
+      if (!this.isUrl(path)) {
+        assets.push({
+          originalPath: path,
+          markdownSyntax: fullMatch,
+          type: this.getAssetType(path),
+          position: match.index
+        });
+      }
+    }
+    
+    // Match link syntax: [text](path) - but only for non-markdown files
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    
+    while ((match = linkRegex.exec(content)) !== null) {
+      const [fullMatch, text, path] = match;
+      
+      // Only process local file references that aren't markdown files or URLs
+      if (!this.isUrl(path) && !this.isMarkdownFile(path)) {
+        assets.push({
+          originalPath: path,
+          markdownSyntax: fullMatch,
+          type: this.getAssetType(path),
+          position: match.index
+        });
+      }
+    }
+    
+    return assets;
+  }
+  
+  private async processAssets(
+    fileNode: FileNode,
+    notebookId: string,
+    allFiles: File[],
+    onAssetUploaded: () => void
+  ): Promise<string> {
+    let updatedContent = fileNode.content;
+    
+    // Process assets in reverse order to maintain string positions
+    const sortedAssets = [...fileNode.assets].sort((a, b) => b.position - a.position);
+    
+    for (const asset of sortedAssets) {
+      try {
+        // Find the actual file in the uploaded files
+        const assetFile = this.findAssetFile(asset.originalPath, fileNode.path, allFiles);
+        
+        if (!assetFile) {
+          throw new Error(`Asset file not found: ${asset.originalPath}`);
+        }
+        
+        // Upload to Supabase Storage
+        const uploadResult = await this.uploadAsset(assetFile, notebookId);
+        
+        // Replace the markdown reference with the new URL
+        const newMarkdown = this.generateAssetMarkdown(
+          asset,
+          uploadResult.url,
+          assetFile.name
+        );
+        
+        updatedContent = 
+          updatedContent.slice(0, asset.position) +
+          newMarkdown +
+          updatedContent.slice(asset.position + asset.markdownSyntax.length);
+        
+        onAssetUploaded();
+        
+      } catch (error) {
+        console.error(`Failed to process asset ${asset.originalPath}:`, error);
+        // Keep original reference if upload fails
+      }
+    }
+    
+    return updatedContent;
+  }
+  
+  private findAssetFile(assetPath: string, markdownPath: string, allFiles: File[]): File | null {
+    // Resolve relative path from markdown file location
+    const markdownDir = markdownPath.substring(0, markdownPath.lastIndexOf('/'));
+    const resolvedPath = this.resolvePath(markdownDir, assetPath);
+    
+    return allFiles.find(f => {
+      const filePath = (f as any).webkitRelativePath || f.name;
+      return filePath === resolvedPath || filePath.endsWith(resolvedPath);
+    }) || null;
+  }
+  
+  private resolvePath(basePath: string, relativePath: string): string {
+    // Handle relative paths like ../images/pic.png or ./doc.pdf
+    const parts = basePath.split('/').filter(p => p);
+    const relParts = relativePath.split('/');
+    
+    for (const part of relParts) {
+      if (part === '..') {
+        parts.pop();
+      } else if (part !== '.') {
+        parts.push(part);
+      }
+    }
+    
+    return parts.join('/');
+  }
+  
+  private async uploadAsset(file: File, notebookId: string): Promise<{ url: string }> {
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    if (!userId) throw new Error('User not authenticated');
+    
+    const timestamp = Date.now();
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const category = this.getAssetType(file.name);
+    const storagePath = `${userId}/imports/${notebookId}/${category}/${timestamp}-${sanitizedName}`;
+    
+    const { data, error } = await supabase.storage
+      .from('user-files')
+      .upload(storagePath, file);
+    
+    if (error) throw error;
+    
+    const { data: urlData } = supabase.storage
+      .from('user-files')
+      .getPublicUrl(storagePath);
+    
+    return { url: urlData.publicUrl };
+  }
+  
+  private generateAssetMarkdown(asset: AssetReference, url: string, filename: string): string {
+    if (asset.type === 'image') {
+      return `![${filename}](${url})`;
+    } else {
+      return `[${filename}](${url})`;
+    }
+  }
+  
+  private buildPageCreationPlan(files: FileNode[]): PageCreationPlan[] {
+    const plan: PageCreationPlan[] = [];
+    const pathMap = new Map<string, number>();
+    
+    // Sort files by path depth to ensure parents are created first
+    const sortedFiles = [...files].sort((a, b) => {
+      const aDepth = a.path.split('/').length;
+      const bDepth = b.path.split('/').length;
+      return aDepth - bDepth;
+    });
+    
+    for (const file of sortedFiles) {
+      const pathParts = file.path.split('/');
+      const parentPath = pathParts.slice(0, -1).join('/');
+      
+      plan.push({
+        title: file.name.replace(/\.(md|markdown)$/i, ''),
+        content: file.content,
+        parentPath: parentPath || undefined,
+        order: pathMap.get(parentPath) || 0
+      });
+      
+      pathMap.set(parentPath, (pathMap.get(parentPath) || 0) + 1);
+    }
+    
+    return plan;
+  }
+  
+  private async createPage(
+    plan: PageCreationPlan,
+    notebookId: string,
+    pageMap: Map<string, string>
+  ): Promise<string> {
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    if (!userId) throw new Error('User not authenticated');
+    
+    const parentPageId = plan.parentPath ? pageMap.get(plan.parentPath) : undefined;
+    
+    const { data, error } = await supabase
+      .from('pages')
+      .insert({
+        title: plan.title,
+        content: plan.content,
+        notebook_id: notebookId,
+        parent_page_id: parentPageId,
+        user_id: userId,
+        version: 1
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    return data.id;
+  }
+  
+  private isMarkdownFile(filename: string): boolean {
+    return this.MARKDOWN_EXTENSIONS.some(ext => 
+      filename.toLowerCase().endsWith(ext)
+    );
+  }
+  
+  private isUrl(path: string): boolean {
+    return /^https?:\/\//i.test(path);
+  }
+  
+  private getAssetType(filename: string): 'image' | 'document' | 'video' | 'other' {
+    const ext = filename.toLowerCase().split('.').pop();
+    
+    const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+    const videoExts = ['mp4', 'webm', 'ogg', 'mov'];
+    const docExts = ['pdf', 'doc', 'docx', 'txt', 'csv', 'xlsx'];
+    
+    if (imageExts.includes(ext || '')) return 'image';
+    if (videoExts.includes(ext || '')) return 'video';
+    if (docExts.includes(ext || '')) return 'document';
+    return 'other';
+  }
+}
+
+export const importService = new MarkdownImportService();
+```
+
+#### 3. File Dropzone Component
+
+```typescript
+interface FileDropzoneProps {
+  onFilesSelected: (files: File[]) => void;
+  accept?: string;
+  multiple?: boolean;
+}
+
+const FileDropzone: React.FC<FileDropzoneProps> = ({ 
+  onFilesSelected, 
+  accept = '.md,.markdown',
+  multiple = true 
+}) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const items = Array.from(e.dataTransfer.items);
+    const files: File[] = [];
+    
+    // Handle folder drops using webkitGetAsEntry
+    items.forEach(item => {
+      const entry = item.webkitGetAsEntry();
+      if (entry) {
+        if (entry.isDirectory) {
+          this.traverseDirectory(entry as FileSystemDirectoryEntry, files);
+        } else {
+          files.push(item.getAsFile()!);
+        }
+      }
+    });
+    
+    onFilesSelected(files);
+  };
+  
+  const traverseDirectory = async (
+    dirEntry: FileSystemDirectoryEntry,
+    files: File[]
+  ) => {
+    const reader = dirEntry.createReader();
+    
+    reader.readEntries(async (entries) => {
+      for (const entry of entries) {
+        if (entry.isDirectory) {
+          await this.traverseDirectory(entry as FileSystemDirectoryEntry, files);
+        } else {
+          const fileEntry = entry as FileSystemFileEntry;
+          fileEntry.file(file => files.push(file));
+        }
+      }
+    });
+  };
+  
+  return (
+    <div
+      className={cn(
+        "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer",
+        isDragging ? "border-primary bg-primary/10" : "border-gray-300"
+      )}
+      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+      onDragLeave={() => setIsDragging(false)}
+      onDrop={handleDrop}
+      onClick={() => inputRef.current?.click()}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        multiple={multiple}
+        webkitdirectory={multiple ? "true" : undefined}
+        className="hidden"
+        onChange={(e) => onFilesSelected(Array.from(e.target.files || []))}
+      />
+      <Upload className="mx-auto h-12 w-12 text-gray-400" />
+      <p className="mt-2 text-sm text-gray-600">
+        Drop markdown files or folders here, or click to browse
+      </p>
+    </div>
+  );
+};
+```
+
+### Import Summary Display
+
+```typescript
+interface ImportSummaryProps {
+  summary: ImportSummary;
+  onClose: () => void;
+}
+
+const ImportSummaryDialog: React.FC<ImportSummaryProps> = ({ summary, onClose }) => {
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Import Complete</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="text-green-500" />
+            <span>{summary.pagesCreated} pages created</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Upload className="text-blue-500" />
+            <span>{summary.assetsUploaded} assets uploaded</span>
+          </div>
+          {summary.errors.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-orange-500">
+                <AlertCircle />
+                <span>{summary.errors.length} errors occurred</span>
+              </div>
+              <ScrollArea className="h-32 border rounded p-2">
+                {summary.errors.map((error, i) => (
+                  <div key={i} className="text-sm text-gray-600">
+                    <strong>{error.file}:</strong> {error.message}
+                  </div>
+                ))}
+              </ScrollArea>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button onClick={onClose}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+```
+
+### Browser API Considerations
+
+The import functionality relies on browser APIs for folder handling:
+
+1. **File System Access API**: For modern browsers, allows recursive folder reading
+2. **webkitdirectory**: Fallback for folder selection in older browsers
+3. **FileReader API**: For reading file contents
+4. **Drag and Drop API**: For drag-and-drop folder uploads
+
+### Performance Considerations
+
+1. **Chunked Processing**: Large imports are processed in batches to avoid memory issues
+2. **Progress Feedback**: Real-time progress updates for user feedback
+3. **Parallel Uploads**: Assets are uploaded in parallel (with concurrency limit)
+4. **Error Recovery**: Failed uploads don't block the entire import process
 
 This design provides a comprehensive foundation for building the web note application with Supabase, leveraging PostgreSQL's powerful features like full-text search, Row Level Security, and real-time capabilities while maintaining a clean and scalable architecture.

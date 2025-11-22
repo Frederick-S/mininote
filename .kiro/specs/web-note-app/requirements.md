@@ -145,3 +145,19 @@ A personal web-based note-taking application built with Supabase that allows use
 3. WHEN selecting two versions THEN the system SHALL provide a comparison view showing differences between versions
 4. WHEN a user wants to restore a previous version THEN the system SHALL allow reverting to any previous version
 5. WHEN exporting content THEN the system SHALL export only the latest version of each page
+
+### Requirement 12: Markdown Import with Hierarchy and Asset Management
+
+**User Story:** As a user, I want to import markdown files or folders into a notebook while preserving folder hierarchy and automatically uploading referenced assets, so that I can migrate existing markdown content into the note system without manual restructuring.
+
+#### Acceptance Criteria
+
+1. WHEN viewing a notebook THEN the system SHALL provide an option to import markdown files or folders
+2. WHEN a user selects a single markdown file for import THEN the system SHALL create a new page with the file's content and name
+3. WHEN a user selects a folder for import THEN the system SHALL recursively scan all markdown files within that folder and its subfolders
+4. WHEN importing a folder THEN the system SHALL create a parent page named after the folder and create child pages for each markdown file within that folder
+5. WHEN importing nested folders THEN the system SHALL preserve the parent-child hierarchy by creating corresponding page relationships
+6. WHEN a markdown file contains local file references (images, documents, videos, or other assets) THEN the system SHALL detect these references, upload the files to Supabase Storage, and update the markdown to reference the uploaded files
+7. WHEN uploading referenced assets during import THEN the system SHALL display progress feedback for the import operation
+8. IF a referenced file cannot be found or uploaded THEN the system SHALL log the error, continue with the import, and notify the user of missing assets
+9. WHEN the import completes THEN the system SHALL display a summary showing the number of pages created and assets uploaded
