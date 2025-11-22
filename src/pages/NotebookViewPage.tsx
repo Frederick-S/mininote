@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { marked } from 'marked';
 import { useNotebook } from '../hooks/useNotebooks';
@@ -21,6 +21,7 @@ import { PageDeleteDialog } from '../components/page/PageDeleteDialog';
 import { VersionHistory } from '../components/page/VersionHistory';
 import { useCodeBlockCopyButtons } from '../components/page/CodeBlockCopyButton';
 import { renderMathInHtml } from '../utils/mathRenderer';
+import { renderMermaidInHtml } from '../utils/mermaidRenderer';
 import type { NotebookData, PageData } from '../types/database';
 
 export function NotebookViewPage() {
@@ -58,11 +59,23 @@ export function NotebookViewPage() {
 
   const selectedPage = pages ? flattenPages(pages).find((p: PageData) => p.id === selectedPageId) : undefined;
 
+  const [pageContentHtml, setPageContentHtml] = useState('');
+
   // Convert markdown to HTML for display
-  const pageContentHtml = useMemo(() => {
-    if (!selectedPage?.content) return '';
-    const html = marked(selectedPage.content, { async: false }) as string;
-    return renderMathInHtml(html);
+  useEffect(() => {
+    const renderContent = async () => {
+      if (!selectedPage?.content) {
+        setPageContentHtml('');
+        return;
+      }
+      
+      const html = marked(selectedPage.content, { async: false }) as string;
+      const htmlWithMath = renderMathInHtml(html);
+      const htmlWithMermaid = await renderMermaidInHtml(htmlWithMath);
+      setPageContentHtml(htmlWithMermaid);
+    };
+
+    renderContent();
   }, [selectedPage?.content]);
 
   // Add copy buttons to code blocks in view mode
