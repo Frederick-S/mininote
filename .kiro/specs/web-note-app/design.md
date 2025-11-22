@@ -489,6 +489,370 @@ CREATE POLICY "Users can delete their own files"
   );
 ```
 
+## File Upload and Auto-Upload Implementation
+
+### Auto-Upload Architecture
+
+The application implements seamless file upload through multiple interaction methods: paste, drag-and-drop, and slash commands. All methods automatically upload files to Supabase Storage and insert appropriate markdown syntax.
+
+### Upload Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant E as TipTap Editor
+    participant H as Upload Handler
+    participant S as Supabase Storage
+    participant D as Database
+    
+    U->>E: Paste/Drop File
+    E->>H: Detect File Event
+    H->>H: Validate File Type & Size
+    H->>S: Upload to Storage
+    S-->>H: Return File URL
+    H->>D: Create Attachment Record
+    D-->>H: Confirm Record
+    H->>E: Insert Markdown
+    E-->>U: Display Uploaded Content
+```
+
+### TipTap Editor Extensions
+
+#### Paste Handler Extension
+
+```typescript
+import { Extension } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+
+export const PasteHandler = Extension.create({
+  name: 'pasteHandler',
+  
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('pasteHandler'),
+        props: {
+          handlePaste(view, event, slice) {
+            const items = Array.from(event.clipboardData?.items || []);
+            const files = items
+              .filter(item => item.kind === 'file')
+              .map(item => item.getAsFile())
+              .filter(file => file !== null);
+            
+            if (files.length > 0) {
+              event.preventDefault();
+              // Trigger auto-upload for each file
+              files.forEach(file => uploadAndInsert(file, view));
+              return true;
+            }
+            return false;
+          }
+        }
+      })
+    ];
+  }
+});
+```
+
+#### Drag-and-Drop Handler Extension
+
+```typescript
+export const DragDropHandler = Extension.create({
+  name: 'dragDropHandler',
+  
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('dragDropHandler'),
+        props: {
+          handleDrop(view, event, slice, moved) {
+            if (moved) return false;
+            
+            const files = Array.from(event.dataTransfer?.files || []);
+            
+            if (files.length > 0) {
+              event.preventDefault();
+              const pos = view.posAtCoords({
+                left: event.clientX,
+                top: event.clientY
+              });
+              
+              // Upload and insert at drop position
+              files.forEach(file => uploadAndInsert(file, view, pos?.pos));
+              return true;
+            }
+            return false;
+          }
+        }
+      })
+    ];
+  }
+});
+```
+
+### Upload Service
+
+```typescript
+interface UploadOptions {
+  file: File;
+  pageId: string;
+  userId: string;
+  onProgress?: (progress: number) => void;
+}
+
+interface UploadResult {
+  url: string;
+  attachmentId: string;
+  filename: string;
+  fileType: string;
+}
+
+class FileUploadService {
+  private readonly MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+  private readonly ALLOWED_TYPES = {
+    images: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
+    videos: ['video/mp4', 'video/webm', 'video/ogg'],
+    documents: ['application/pdf', 'text/plain', 'application/msword', 
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+  };
+  
+  async uploadFile(options: UploadOptions): Promise<UploadResult> {
+    const { file, pageId, userId, onProgress } = options;
+    
+    // Validate file
+    this.validateFile(file);
+    
+    // Determine file category
+    const category = this.getFileCategory(file.type);
+    
+    // Generate storage path
+    const timestamp = Date.now();
+    const sanitizedName = this.sanitizeFilename(file.name);
+    const storagePath = `${userId}/${pageId}/${category}/${timestamp}-${sanitizedName}`;
+    
+    // Upload to Supabase Storage with progress tracking
+    const { data, error } = await supabase.storage
+      .from('user-files')
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        onUploadProgress: (progress) => {
+          const percentage = (progress.loaded / progress.total) * 100;
+          onProgress?.(percentage);
+        }
+      });
+    
+    if (error) throw error;
+    
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('user-files')
+      .getPublicUrl(storagePath);
+    
+    // Create attachment record
+    const { data: attachment, error: dbError } = await supabase
+      .from('attachments')
+      .insert({
+        filename: file.name,
+        file_type: file.type,
+        file_size: file.size,
+        storage_path: storagePath,
+        page_id: pageId,
+        user_id: userId
+      })
+      .select()
+      .single();
+    
+    if (dbError) throw dbError;
+    
+    return {
+      url: urlData.publicUrl,
+      attachmentId: attachment.id,
+      filename: file.name,
+      fileType: file.type
+    };
+  }
+  
+  private validateFile(file: File): void {
+    if (file.size > this.MAX_FILE_SIZE) {
+      throw new Error(`File size exceeds ${this.MAX_FILE_SIZE / 1024 / 1024}MB limit`);
+    }
+    
+    const allAllowedTypes = [
+      ...this.ALLOWED_TYPES.images,
+      ...this.ALLOWED_TYPES.videos,
+      ...this.ALLOWED_TYPES.documents
+    ];
+    
+    if (!allAllowedTypes.includes(file.type)) {
+      throw new Error(`File type ${file.type} is not supported`);
+    }
+  }
+  
+  private getFileCategory(mimeType: string): 'images' | 'videos' | 'documents' {
+    if (this.ALLOWED_TYPES.images.includes(mimeType)) return 'images';
+    if (this.ALLOWED_TYPES.videos.includes(mimeType)) return 'videos';
+    return 'documents';
+  }
+  
+  private sanitizeFilename(filename: string): string {
+    return filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+  }
+  
+  generateMarkdown(result: UploadResult): string {
+    const { url, filename, fileType } = result;
+    
+    if (fileType.startsWith('image/')) {
+      return `![${filename}](${url})`;
+    } else if (fileType.startsWith('video/')) {
+      return `[${filename}](${url})`;
+    } else {
+      return `[${filename}](${url})`;
+    }
+  }
+}
+```
+
+### Slash Command Integration
+
+```typescript
+const fileUploadCommands = [
+  {
+    title: 'Image',
+    command: '/image',
+    icon: 'Image',
+    action: (editor) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          await uploadAndInsertFile(file, editor);
+        }
+      };
+      input.click();
+    }
+  },
+  {
+    title: 'File',
+    command: '/file',
+    icon: 'File',
+    action: (editor) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,.doc,.docx,.txt';
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          await uploadAndInsertFile(file, editor);
+        }
+      };
+      input.click();
+    }
+  },
+  {
+    title: 'Video',
+    command: '/video',
+    icon: 'Video',
+    action: (editor) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'video/*';
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          await uploadAndInsertFile(file, editor);
+        }
+      };
+      input.click();
+    }
+  }
+];
+```
+
+### Progress Indication
+
+During upload, the editor displays an inline progress indicator:
+
+```typescript
+function showUploadProgress(editor: Editor, filename: string): string {
+  const placeholderId = `upload-${Date.now()}`;
+  const placeholder = `⏳ Uploading ${filename}... 0%`;
+  
+  editor.commands.insertContent(placeholder);
+  
+  return placeholderId;
+}
+
+function updateUploadProgress(editor: Editor, placeholderId: string, progress: number): void {
+  // Update the placeholder text with current progress
+  const progressText = `⏳ Uploading... ${Math.round(progress)}%`;
+  // Find and replace placeholder
+}
+
+function replaceWithMarkdown(editor: Editor, placeholderId: string, markdown: string): void {
+  // Replace placeholder with actual markdown
+  editor.commands.insertContent(markdown);
+}
+```
+
+### File Management and Cleanup
+
+```typescript
+class FileManagementService {
+  async deleteAttachment(attachmentId: string): Promise<void> {
+    // Get attachment details
+    const { data: attachment } = await supabase
+      .from('attachments')
+      .select('storage_path')
+      .eq('id', attachmentId)
+      .single();
+    
+    if (!attachment) return;
+    
+    // Delete from storage
+    await supabase.storage
+      .from('user-files')
+      .remove([attachment.storage_path]);
+    
+    // Delete database record
+    await supabase
+      .from('attachments')
+      .delete()
+      .eq('id', attachmentId);
+  }
+  
+  async cleanupOrphanedFiles(pageId: string): Promise<void> {
+    // Get page content
+    const { data: page } = await supabase
+      .from('pages')
+      .select('content')
+      .eq('id', pageId)
+      .single();
+    
+    if (!page) return;
+    
+    // Get all attachments for page
+    const { data: attachments } = await supabase
+      .from('attachments')
+      .select('*')
+      .eq('page_id', pageId);
+    
+    // Find attachments not referenced in content
+    const orphaned = attachments?.filter(att => 
+      !page.content.includes(att.storage_path) &&
+      !page.content.includes(att.filename)
+    ) || [];
+    
+    // Delete orphaned attachments
+    for (const attachment of orphaned) {
+      await this.deleteAttachment(attachment.id);
+    }
+  }
+}
+```
+
 ## Error Handling
 
 ### Error Categories

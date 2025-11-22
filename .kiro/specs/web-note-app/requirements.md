@@ -68,9 +68,10 @@ A personal web-based note-taking application built with Supabase that allows use
 2. WHEN a user selects a markdown format command THEN the system SHALL insert appropriate markdown syntax (headings, lists, tables, code blocks, quotes, etc.)
 3. WHEN a user selects an upload command THEN the system SHALL open a file picker for images, videos, or documents
 4. WHEN a user selects diagram commands THEN the system SHALL insert Mermaid chart templates or math expression blocks
-5. WHEN a user uploads a file THEN the system SHALL store it in Supabase Storage and insert appropriate markdown
-6. WHEN a user pastes an image or file THEN the system SHALL detect the content type and automatically upload it
-7. WHEN uploaded files are displayed THEN the system SHALL provide preview capabilities for common file types
+5. WHEN a user uploads a file via slash command THEN the system SHALL store it in Supabase Storage and insert appropriate markdown
+6. WHEN a user pastes an image or file into the editor THEN the system SHALL detect the content type, automatically upload it to Supabase Storage, display upload progress, and insert the appropriate markdown syntax
+7. WHEN a user drags and drops a file into the editor THEN the system SHALL automatically upload it to Supabase Storage, show upload progress, and insert the appropriate markdown at the drop location
+8. WHEN uploaded files are displayed THEN the system SHALL provide preview capabilities for common file types
 
 ### Requirement 6: Search Functionality
 
@@ -91,10 +92,11 @@ A personal web-based note-taking application built with Supabase that allows use
 #### Acceptance Criteria
 
 1. WHEN a user uploads a file THEN the system SHALL store it in Supabase Storage with appropriate permissions
-2. WHEN displaying uploaded content THEN the system SHALL generate secure URLs for file access
-3. WHEN a file is no longer referenced THEN the system SHALL provide cleanup mechanisms to manage storage
-4. WHEN a user deletes a page with files THEN the system SHALL handle associated file cleanup appropriately
-5. IF file upload fails THEN the system SHALL display appropriate error messages and retry options
+2. WHEN a file is uploading THEN the system SHALL display real-time progress feedback in the editor
+3. WHEN displaying uploaded content THEN the system SHALL generate secure URLs for file access
+4. WHEN a file is no longer referenced in page content THEN the system SHALL provide cleanup mechanisms to manage storage
+5. WHEN a user deletes a page with files THEN the system SHALL handle associated file cleanup appropriately
+6. IF file upload fails THEN the system SHALL display appropriate error messages and retry options
 
 ### Requirement 8: User Interface and Experience
 
