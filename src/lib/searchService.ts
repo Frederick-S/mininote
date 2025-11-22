@@ -22,6 +22,7 @@ export interface SearchParams {
  * Search result with highlighting and ranking
  */
 export interface EnhancedSearchResult extends SearchResult {
+  notebook_id: string;
   highlights: string[];
   snippet: string;
 }
@@ -58,7 +59,7 @@ class SearchService {
         title,
         content,
         notebook_id,
-        notebooks!inner(title)
+        notebooks!inner(id, title)
       `, { count: 'exact' });
 
     // Apply scope filter
@@ -86,6 +87,7 @@ class SearchService {
     // Transform results and add highlighting
     const results: EnhancedSearchResult[] = (data || []).map((page: any) => {
       const notebookTitle = page.notebooks?.title || 'Unknown Notebook';
+      const notebookId = page.notebook_id;
       
       return {
         type: 'page' as const,
@@ -93,6 +95,7 @@ class SearchService {
         title: page.title,
         content: page.content,
         notebook_title: notebookTitle,
+        notebook_id: notebookId,
         rank: 1, // Will be calculated by RPC function
         highlights: this.extractHighlights(page.content, params.query),
         snippet: this.generateSnippet(page.content, params.query)
@@ -135,6 +138,7 @@ class SearchService {
       title: row.page_title,
       content: row.page_content,
       notebook_title: row.notebook_title,
+      notebook_id: row.notebook_id || row.page_notebook_id,
       rank: row.rank,
       highlights: this.extractHighlights(row.page_content, params.query),
       snippet: this.generateSnippet(row.page_content, params.query)

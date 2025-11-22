@@ -20,6 +20,7 @@ import { PageEditor } from '../components/page/PageEditor';
 import { PageDeleteDialog } from '../components/page/PageDeleteDialog';
 import { VersionHistory } from '../components/page/VersionHistory';
 import { useCodeBlockCopyButtons } from '../components/page/CodeBlockCopyButton';
+import { SearchDialog } from '../components/search/SearchDialog';
 import { renderMathInHtml } from '../utils/mathRenderer';
 import { renderMermaidInHtml } from '../utils/mermaidRenderer';
 import type { NotebookData, PageData } from '../types/database';
@@ -193,6 +194,10 @@ export function NotebookViewPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <SearchDialog
+                currentNotebookId={notebookId}
+                currentNotebookTitle={notebook.title}
+              />
               <PageCreator
                 notebookId={notebookId}
                 onSuccess={handlePageCreated}

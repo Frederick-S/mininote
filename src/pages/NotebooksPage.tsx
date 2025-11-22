@@ -1,4 +1,5 @@
 import { NotebookList } from '../components/notebook';
+import { SearchDialog } from '../components/search/SearchDialog';
 
 export function NotebooksPage() {
 
@@ -11,7 +12,10 @@ export function NotebooksPage() {
             Organize your notes into notebooks
           </p>
         </div>
-        <NotebookList showHeaderOnly />
+        <div className="flex items-center gap-2">
+          <SearchDialog />
+          <NotebookList showHeaderOnly />
+        </div>
       </div>
       
       <NotebookList />
