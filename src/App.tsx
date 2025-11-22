@@ -7,6 +7,7 @@ import {
   ResetPasswordForm,
   ChangePasswordForm,
 } from '@/components/auth';
+import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -37,7 +38,10 @@ function App() {
   // Check if this is a password reset flow
   useEffect(() => {
     const checkPasswordReset = () => {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      // Handle both standard hash and slash-prefixed hash (from HashRouter)
+      const hashString = window.location.hash.substring(1);
+      const paramsString = hashString.startsWith('/') ? hashString.substring(1) : hashString;
+      const hashParams = new URLSearchParams(paramsString);
       const type = hashParams.get('type');
       
       if (type === 'recovery') {
@@ -48,11 +52,19 @@ function App() {
     // Check immediately
     checkPasswordReset();
 
+    // Listen for Supabase auth events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordReset(true);
+      }
+    });
+
     // Also listen for hash changes (in case Supabase modifies the URL)
     window.addEventListener('hashchange', checkPasswordReset);
     
     return () => {
       window.removeEventListener('hashchange', checkPasswordReset);
+      subscription.unsubscribe();
     };
   }, []);
 

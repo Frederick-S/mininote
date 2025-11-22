@@ -76,7 +76,7 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
 
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: `${window.location.origin}/#/reset-password`,
+        redirectTo: window.location.origin,
       });
 
       if (resetError) {

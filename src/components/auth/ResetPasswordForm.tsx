@@ -77,7 +77,12 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
 
         // Extract the auth params after the second #
         const hashParts = fullHash.split('#');
-        const authHash = hashParts.length > 2 ? hashParts[2] : hashParts[1];
+        let authHash = hashParts.length > 2 ? hashParts[2] : hashParts[1];
+
+        // Remove leading slash if present (caused by HashRouter)
+        if (authHash && authHash.startsWith('/')) {
+          authHash = authHash.substring(1);
+        }
 
         console.log('Auth hash:', authHash);
 
