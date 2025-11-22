@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Grid3x3, List, MoreVertical, Trash2, Edit, Calendar } from 'lucide-react';
+import { BookOpen, Grid3x3, List, MoreVertical, Trash2, Edit, Calendar, PlusCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import {
@@ -18,13 +18,59 @@ type ViewMode = 'grid' | 'list';
 
 interface NotebookListProps {
   onSelectNotebook?: (notebookId: string) => void;
+  showHeaderOnly?: boolean;
 }
 
-export function NotebookList({ onSelectNotebook }: NotebookListProps) {
+// Shared state for view mode across instances
+let sharedViewMode: ViewMode = 'grid';
+const viewModeListeners: Set<(mode: ViewMode) => void> = new Set();
+
+export function NotebookList({ onSelectNotebook, showHeaderOnly }: NotebookListProps) {
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewModeState] = useState<ViewMode>(sharedViewMode);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [notebookToDelete, setNotebookToDelete] = useState<NotebookData | null>(null);
+
+  const setViewMode = (mode: ViewMode) => {
+    sharedViewMode = mode;
+    setViewModeState(mode);
+    viewModeListeners.forEach(listener => listener(mode));
+  };
+
+  // Subscribe to view mode changes
+  useState(() => {
+    const listener = (mode: ViewMode) => setViewModeState(mode);
+    viewModeListeners.add(listener);
+    return () => {
+      viewModeListeners.delete(listener);
+    };
+  });
+
+  // If showing header only, just render the controls (no data fetching needed)
+  if (showHeaderOnly) {
+    return (
+      <div className="flex items-center gap-2">
+        <Button
+          variant={viewMode === 'grid' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setViewMode('grid')}
+        >
+          <Grid3x3 className="h-4 w-4" />
+        </Button>
+        <Button
+          variant={viewMode === 'list' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setViewMode('list')}
+        >
+          <List className="h-4 w-4" />
+        </Button>
+        <Button onClick={() => navigate('/notebooks/new')}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          New Notebook
+        </Button>
+      </div>
+    );
+  }
   
   const { data: notebooks, isLoading, error } = useNotebooks() as {
     data: NotebookData[] | undefined;
@@ -106,28 +152,7 @@ export function NotebookList({ onSelectNotebook }: NotebookListProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* View Mode Toggle */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">My Notebooks</h2>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('grid')}
-          >
-            <Grid3x3 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('list')}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
+    <div className="space-y-3">
       {/* Notebooks Display */}
       <div
         className={cn(
