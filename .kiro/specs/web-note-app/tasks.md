@@ -100,18 +100,34 @@
 
 - [ ] 8. Build file upload and management system
 - [ ] 8.1 Implement file upload functionality
-  - Create FileUploader component with drag-and-drop
-  - Add file type validation and size limits
+  - Create FileUploader component with drag-and-drop support
+  - Add file type validation and size limits (images, videos, documents)
   - Implement progress tracking for uploads to Supabase Storage
-  - Build file preview capabilities
+  - Build file preview capabilities for common file types
+  - Generate secure URLs for uploaded files
   - _Requirements: 5.3, 5.6, 5.7, 7.1, 7.2_
 
-- [ ] 8.2 Integrate file uploads with editor
-  - Add file upload slash commands
-  - Implement paste detection for images and files
-  - Create automatic markdown insertion for uploaded files
-  - Add file management and deletion capabilities
+- [ ] 8.2 Integrate auto-upload with editor
+  - Implement paste event detection in TipTap editor for images and files
+  - Add automatic file upload on paste/drop with progress indicator
+  - Create automatic markdown insertion for uploaded files (images as ![alt](url), files as [filename](url))
+  - Add drag-and-drop file upload directly into editor
+  - Handle multiple file uploads simultaneously
   - _Requirements: 5.3, 5.5, 5.6, 7.3, 7.4_
+
+- [ ] 8.3 Add file upload slash commands
+  - Implement /image, /file, /video slash commands
+  - Open file picker on command selection
+  - Auto-upload selected files and insert markdown
+  - Show upload progress in editor
+  - _Requirements: 5.3, 5.5, 5.6_
+
+- [ ] 8.4 Implement file management capabilities
+  - Track file attachments in attachments table
+  - Add file deletion when removed from page content
+  - Implement orphaned file cleanup mechanism
+  - Handle file cleanup when pages are deleted
+  - _Requirements: 7.3, 7.4_
 
 - [x] 9. Implement page version control system
 - [x] 9.1 Create version tracking functionality
