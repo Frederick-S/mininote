@@ -210,6 +210,15 @@
   - Display errors for missing assets or failed operations
   - _Requirements: 12.7, 12.8, 12.9_
 
+- [ ] 12.5.1 Handle encrypted notebook imports
+  - Detect if target notebook is encrypted before import
+  - Prompt for notebook encryption password if needed
+  - Verify password by attempting to decrypt notebook metadata
+  - Encrypt all imported page content with notebook password
+  - Update import summary to indicate encrypted import
+  - Handle password verification errors and cancel import if needed
+  - _Requirements: 12.10, 13.2, 13.8_
+
 - [ ] 12.6 Write property test for single file import
   - **Property 1: Single file import creates matching page**
   - **Validates: Requirements 12.2**
@@ -241,6 +250,10 @@
 - [ ] 12.13 Write property test for import summary
   - **Property 8: Import summary accuracy**
   - **Validates: Requirements 12.9**
+
+- [ ] 12.14 Write property test for encrypted notebook import
+  - **Property 15: Import into encrypted notebook encrypts pages**
+  - **Validates: Requirements 12.10**
 
 - [ ] 13. Implement content encryption system
 - [ ] 13.1 Update database schema for encryption

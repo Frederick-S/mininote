@@ -2447,6 +2447,103 @@ When exporting encrypted content, the system always decrypts before exporting:
 
 This approach ensures that exported files are usable in other applications without requiring decryption tools, while still maintaining security by requiring the password at export time.
 
+### Import Considerations
+
+When importing markdown files into an encrypted notebook, the system automatically encrypts the imported content:
+
+1. **Notebook Encryption Detection**: Check if the target notebook has encryption enabled before starting import
+2. **Password Prompt**: If the notebook is encrypted, prompt the user for the notebook's encryption password before import
+3. **Password Verification**: Verify the password is correct by attempting to decrypt existing notebook metadata
+4. **Automatic Encryption**: Encrypt all imported page content using the notebook's encryption password before storing in the database
+5. **Cascade Behavior**: All pages created during import inherit the notebook's encryption status and use the same password
+6. **Error Handling**: If password verification fails, cancel the import operation
+7. **Import Summary**: The import summary should indicate that pages were imported and encrypted
+
+#### Implementation Details
+
+```typescript
+class MarkdownImportService {
+  async importFiles(
+    files: File[],
+    notebookId: string,
+    onProgress: (progress: number) => void
+  ): Promise<ImportSummary> {
+    // Check if notebook is encrypted
+    const { data: notebook } = await supabase
+      .from('notebooks')
+      .select('is_encrypted, encryption_salt, encryption_iv')
+      .eq('id', notebookId)
+      .single();
+    
+    let encryptionPassword: string | undefined;
+    
+    if (notebook?.is_encrypted) {
+      // Prompt for password
+      encryptionPassword = await promptForPassword('unlock');
+      
+      // Verify password by attempting to decrypt notebook metadata
+      try {
+        await encryptionService.decrypt({
+          password: encryptionPassword,
+          salt: notebook.encryption_salt!,
+          iv: notebook.encryption_iv!,
+          ciphertext: '' // Empty test decryption
+        });
+      } catch (error) {
+        throw new Error('Incorrect password. Import cancelled.');
+      }
+    }
+    
+    // Continue with import...
+    // When creating pages, encrypt if needed
+    for (const plan of creationPlan) {
+      let contentToStore = plan.content;
+      let isEncrypted = false;
+      let encryptionMetadata = {};
+      
+      if (encryptionPassword) {
+        // Encrypt the content
+        const encrypted = await encryptionService.encrypt(
+          plan.content,
+          encryptionPassword
+        );
+        
+        contentToStore = ''; // Clear plaintext
+        isEncrypted = true;
+        encryptionMetadata = {
+          is_encrypted: true,
+          encrypted_content: encrypted.ciphertext,
+          encryption_salt: encrypted.salt,
+          encryption_iv: encrypted.iv
+        };
+      }
+      
+      // Create page with encryption if applicable
+      await supabase.from('pages').insert({
+        title: plan.title,
+        content: contentToStore,
+        notebook_id: notebookId,
+        parent_page_id: parentPageId,
+        user_id: userId,
+        version: 1,
+        ...encryptionMetadata
+      });
+    }
+    
+    return summary;
+  }
+}
+```
+
+#### User Experience
+
+1. **Clear Communication**: When importing into an encrypted notebook, show a dialog explaining that imported pages will be encrypted
+2. **Password Caching**: Use the password cache to avoid re-prompting if the user recently unlocked the notebook
+3. **Import Summary**: Clearly indicate in the summary that pages were imported and encrypted
+4. **Error Recovery**: If password is incorrect, allow the user to retry or cancel the import
+
+This ensures that encrypted notebooks maintain their security properties even when importing external content, and users understand that imported content will be automatically protected.
+
 ### Security Considerations
 
 1. **Client-Side Only**: All encryption/decryption happens in the browser; server never sees plaintext or passwords
@@ -2482,5 +2579,9 @@ Property 13: Database never stores plaintext for encrypted content
 Property 14: Page-specific encryption overrides notebook encryption
 *For any* page with individual encryption enabled, the page should use its own encryption password regardless of the notebook's encryption status
 **Validates: Requirements 13.9**
+
+Property 15: Import into encrypted notebook encrypts pages
+*For any* encrypted notebook, importing markdown files should result in all imported pages being encrypted with the notebook's encryption password
+**Validates: Requirements 12.10**
 
 This design provides a comprehensive foundation for building Mini Note with Supabase, leveraging PostgreSQL's powerful features like full-text search, Row Level Security, and real-time capabilities while maintaining a clean and scalable architecture. The addition of client-side encryption ensures that sensitive content remains secure even if the database is compromised, giving users full control over their data privacy.

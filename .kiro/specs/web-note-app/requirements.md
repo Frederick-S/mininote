@@ -162,6 +162,7 @@ A personal web-based note-taking application built with Supabase that allows use
 7. WHEN uploading referenced assets during import THEN the system SHALL display progress feedback for the import operation
 8. IF a referenced file cannot be found or uploaded THEN the system SHALL log the error, continue with the import, and notify the user of missing assets
 9. WHEN the import completes THEN the system SHALL display a summary showing the number of pages created and assets uploaded
+10. WHEN importing into an encrypted notebook THEN the system SHALL prompt for the notebook's encryption password and encrypt all imported pages with that password before storing them
 
 ### Requirement 13: Content Encryption
 
