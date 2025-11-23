@@ -242,60 +242,161 @@
   - **Property 8: Import summary accuracy**
   - **Validates: Requirements 12.9**
 
-- [ ] 13. Add comprehensive error handling and loading states
-- [ ] 13.1 Implement global error handling
+- [ ] 13. Implement content encryption system
+- [ ] 13.1 Update database schema for encryption
+  - Add is_encrypted, encryption_salt, encryption_iv columns to notebooks table
+  - Add is_encrypted, encryption_salt, encryption_iv, encrypted_content columns to pages table
+  - Update searchable_content trigger to skip encrypted pages
+  - Run database migration to apply schema changes
+  - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.10_
+
+- [ ] 13.2 Create encryption service with Web Crypto API
+  - Build EncryptionService class with AES-256-GCM encryption
+  - Implement PBKDF2 key derivation with 100,000 iterations
+  - Add encrypt method that generates salt, IV, and ciphertext
+  - Add decrypt method with error handling for wrong passwords
+  - Implement password validation with strength requirements
+  - Add utility methods for base64 encoding/decoding
+  - _Requirements: 13.4, 13.6, 13.7, 13.10_
+
+- [ ] 13.3 Write property test for encryption ciphertext generation
+  - **Property 9: Encryption produces ciphertext**
+  - **Validates: Requirements 13.4**
+
+- [ ] 13.4 Write property test for encryption round-trip
+  - **Property 10: Encryption round-trip preserves content**
+  - **Validates: Requirements 13.6**
+
+- [ ] 13.5 Write property test for wrong password handling
+  - **Property 11: Wrong password fails decryption**
+  - **Validates: Requirements 13.7**
+
+- [ ] 13.6 Create password management UI components
+  - Build EncryptionPasswordDialog component with set/unlock modes
+  - Create password input fields with confirmation for setting
+  - Add password strength indicator and validation feedback
+  - Implement error display for incorrect passwords
+  - Add warning message about password recovery
+  - _Requirements: 13.1, 13.3, 13.5, 13.6, 13.7_
+
+- [ ] 13.7 Implement password caching service
+  - Create PasswordCacheService with session-based storage
+  - Add 30-minute expiration for cached passwords
+  - Implement cache retrieval and validation
+  - Add cache clearing on logout or timeout
+  - _Requirements: 13.5, 13.6_
+
+- [ ] 13.8 Build encryption toggle component
+  - Create EncryptionToggle component with Switch UI
+  - Add visual indicator (lock icon) for encrypted content
+  - Trigger password dialog when enabling encryption
+  - Handle encryption state changes
+  - _Requirements: 13.1, 13.3_
+
+- [ ] 13.9 Implement page-level encryption
+  - Create PageEncryptionService class
+  - Add savePage method that encrypts content before storing
+  - Implement loadPage method that decrypts content on retrieval
+  - Handle password prompts for encrypted pages
+  - Clear plaintext content field when encrypting
+  - _Requirements: 13.3, 13.4, 13.5, 13.6, 13.7, 13.9, 13.10_
+
+- [ ] 13.10 Write property test for database plaintext prevention
+  - **Property 13: Database never stores plaintext for encrypted content**
+  - **Validates: Requirements 13.10**
+
+- [ ] 13.11 Write property test for page-specific encryption override
+  - **Property 14: Page-specific encryption overrides notebook encryption**
+  - **Validates: Requirements 13.9**
+
+- [ ] 13.12 Implement notebook-level encryption
+  - Create NotebookEncryptionService class
+  - Add enableNotebookEncryption method that encrypts all pages
+  - Implement disableNotebookEncryption with password verification
+  - Handle encryption cascade to all child pages
+  - Update notebook metadata with encryption status
+  - _Requirements: 13.1, 13.2, 13.8_
+
+- [ ] 13.13 Write property test for notebook encryption cascade
+  - **Property 12: Notebook encryption cascades to pages**
+  - **Validates: Requirements 13.8**
+
+- [ ] 13.14 Integrate encryption with editor
+  - Add encryption toggle to page editor interface
+  - Implement automatic decryption when opening encrypted pages
+  - Add password prompt before displaying encrypted content
+  - Handle encryption state changes during editing
+  - Update save functionality to encrypt when needed
+  - _Requirements: 13.3, 13.4, 13.5, 13.6_
+
+- [ ] 13.15 Update search to exclude encrypted content
+  - Modify search queries to filter out encrypted pages
+  - Add visual badge for encrypted pages in search results
+  - Update searchable_content trigger to skip encrypted pages
+  - _Requirements: 13.4, 13.10_
+
+- [ ] 13.16 Update export functionality for encrypted content
+  - Detect encrypted notebooks/pages during export
+  - Prompt user for encryption password before export
+  - Decrypt all encrypted content before generating export files
+  - Export decrypted content as plaintext markdown
+  - Handle incorrect password errors and cancel export
+  - _Requirements: 10.6, 13.4, 13.6_
+
+- [ ] 14. Add comprehensive error handling and loading states
+- [ ] 14.1 Implement global error handling
   - Create ErrorBoundary components for error catching
   - Build user-friendly error message system
   - Add retry mechanisms for failed operations
   - Implement error logging and monitoring
   - _Requirements: 8.4, 9.2_
 
-- [ ] 13.2 Add loading states and user feedback
+- [ ] 14.2 Add loading states and user feedback
   - Create loading spinners and skeleton screens
   - Implement progress indicators for long operations
   - Add success/error toast notifications
   - Build offline state handling
   - _Requirements: 8.3, 8.4_
 
-- [ ] 14. Implement responsive design and mobile optimization
-- [ ] 14.1 Optimize for mobile devices
+- [ ] 15. Implement responsive design and mobile optimization
+- [ ] 15.1 Optimize for mobile devices
   - Ensure responsive layout across all screen sizes
   - Implement touch-friendly interactions
   - Add mobile-specific navigation patterns
   - Optimize editor for mobile input
   - _Requirements: 8.1, 8.5_
 
-- [ ] 14.2 Add accessibility features
+- [ ] 15.2 Add accessibility features
   - Implement keyboard navigation throughout the app
   - Add proper ARIA labels and semantic HTML
   - Ensure color contrast and screen reader compatibility
   - Test with accessibility tools and guidelines
   - _Requirements: 8.5_
 
-- [ ] 15. Write comprehensive tests
-- [ ] 15.1 Create unit tests for components and utilities
+- [ ] 16. Write comprehensive tests
+- [ ] 16.1 Create unit tests for components and utilities
   - Write tests for all React components
   - Test custom hooks and utility functions
   - Mock Supabase client for testing
   - Achieve high test coverage for critical paths
   - _Requirements: All requirements validation_
 
-- [ ] 15.2 Implement integration and end-to-end tests
+- [ ] 16.2 Implement integration and end-to-end tests
   - Create integration tests for user workflows
   - Build end-to-end tests with Playwright
   - Test file upload and download functionality
   - Validate cross-browser compatibility
   - _Requirements: Complete user journey validation_
 
-- [ ] 16. Performance optimization and deployment preparation
-- [ ] 16.1 Optimize application performance
+- [ ] 17. Performance optimization and deployment preparation
+- [ ] 17.1 Optimize application performance
   - Implement code splitting and lazy loading
   - Optimize bundle size and loading times
   - Add performance monitoring and metrics
   - Optimize database queries and indexes
   - _Requirements: 8.1, 8.3_
 
-- [ ] 16.2 Prepare for production deployment
+- [ ] 17.2 Prepare for production deployment
   - Configure production environment variables
   - Set up CI/CD pipeline for automated deployment
   - Configure monitoring and logging

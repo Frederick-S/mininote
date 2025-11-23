@@ -133,6 +133,7 @@ A personal web-based note-taking application built with Supabase that allows use
 3. WHEN exporting a notebook THEN the system SHALL create a zip file containing all pages as markdown files with proper folder structure
 4. WHEN exporting a page THEN the system SHALL generate a markdown file with the page content and appropriate filename
 5. WHEN exported files contain references to uploaded media THEN the system SHALL include those files in the export or provide download links
+6. WHEN exporting encrypted notebooks or pages THEN the system SHALL prompt for the encryption password and decrypt the content before exporting as plaintext markdown
 
 ### Requirement 11: Page Version Control
 
@@ -161,3 +162,20 @@ A personal web-based note-taking application built with Supabase that allows use
 7. WHEN uploading referenced assets during import THEN the system SHALL display progress feedback for the import operation
 8. IF a referenced file cannot be found or uploaded THEN the system SHALL log the error, continue with the import, and notify the user of missing assets
 9. WHEN the import completes THEN the system SHALL display a summary showing the number of pages created and assets uploaded
+
+### Requirement 13: Content Encryption
+
+**User Story:** As a user, I want to encrypt sensitive notebooks or individual pages with a password, so that my confidential content remains secure even if the database is compromised.
+
+#### Acceptance Criteria
+
+1. WHEN creating or editing a notebook THEN the system SHALL provide an option to enable encryption with a user-defined password
+2. WHEN a notebook is marked as encrypted THEN the system SHALL encrypt all pages within that notebook before storing them in the database
+3. WHEN creating or editing a page THEN the system SHALL provide an option to enable encryption with a user-defined password independently of the notebook
+4. WHEN a page is marked as encrypted THEN the system SHALL encrypt the page content before storing it in the database as ciphertext
+5. WHEN a user attempts to view an encrypted notebook or page THEN the system SHALL prompt for the encryption password before displaying content
+6. WHEN a user provides the correct encryption password THEN the system SHALL decrypt the content and display it in the editor
+7. WHEN a user provides an incorrect encryption password THEN the system SHALL display an error message and prevent access to the content
+8. WHEN an encrypted notebook contains pages THEN the system SHALL apply the notebook's encryption to all child pages automatically
+9. WHEN a page has individual encryption enabled THEN the system SHALL use the page-specific password regardless of notebook encryption status
+10. WHEN storing encrypted content THEN the system SHALL ensure that plaintext content is never persisted to the database

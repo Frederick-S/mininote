@@ -1696,4 +1696,791 @@ The import functionality relies on browser APIs for folder handling:
 3. **Parallel Uploads**: Assets are uploaded in parallel (with concurrency limit)
 4. **Error Recovery**: Failed uploads don't block the entire import process
 
-This design provides a comprehensive foundation for building Mini Note with Supabase, leveraging PostgreSQL's powerful features like full-text search, Row Level Security, and real-time capabilities while maintaining a clean and scalable architecture.
+## Content Encryption
+
+### Encryption Architecture
+
+The application provides client-side encryption for sensitive notebooks and pages, ensuring that encrypted content is never stored as plaintext in the database. Encryption is performed entirely in the browser using the Web Crypto API, with user-defined passwords used to derive encryption keys.
+
+### Encryption Strategy
+
+```mermaid
+graph TB
+    subgraph "Client-Side Encryption"
+        A[User Password] --> B[PBKDF2 Key Derivation]
+        B --> C[AES-256-GCM Key]
+        D[Plaintext Content] --> E[Encrypt with Key]
+        C --> E
+        E --> F[Ciphertext + IV + Salt]
+    end
+    
+    subgraph "Database Storage"
+        F --> G[Store Encrypted Content]
+        G --> H[PostgreSQL]
+    end
+    
+    subgraph "Client-Side Decryption"
+        I[User Password] --> J[PBKDF2 Key Derivation]
+        K[Ciphertext + IV + Salt] --> L[Decrypt with Key]
+        J --> L
+        L --> M[Plaintext Content]
+    end
+    
+    H --> K
+```
+
+### Encryption Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant E as Editor
+    participant C as Crypto Service
+    participant D as Database
+    
+    U->>E: Enable Encryption
+    E->>U: Prompt for Password
+    U->>E: Enter Password
+    E->>C: Encrypt Content
+    C->>C: Derive Key from Password
+    C->>C: Generate IV and Salt
+    C->>C: Encrypt with AES-256-GCM
+    C-->>E: Return Ciphertext
+    E->>D: Store Encrypted Content
+    
+    U->>E: View Encrypted Content
+    E->>U: Prompt for Password
+    U->>E: Enter Password
+    E->>D: Fetch Encrypted Content
+    D-->>E: Return Ciphertext
+    E->>C: Decrypt Content
+    C->>C: Derive Key from Password
+    C->>C: Decrypt with AES-256-GCM
+    C-->>E: Return Plaintext
+    E-->>U: Display Content
+```
+
+### Database Schema Updates
+
+```sql
+-- Add encryption fields to notebooks table
+ALTER TABLE notebooks ADD COLUMN is_encrypted BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE notebooks ADD COLUMN encryption_salt TEXT;
+ALTER TABLE notebooks ADD COLUMN encryption_iv TEXT;
+
+-- Add encryption fields to pages table
+ALTER TABLE pages ADD COLUMN is_encrypted BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE pages ADD COLUMN encryption_salt TEXT;
+ALTER TABLE pages ADD COLUMN encryption_iv TEXT;
+ALTER TABLE pages ADD COLUMN encrypted_content TEXT;
+
+-- Update searchable_content trigger to skip encrypted pages
+CREATE OR REPLACE FUNCTION update_searchable_content()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.is_encrypted THEN
+    NEW.searchable_content := NULL;
+  ELSE
+    NEW.searchable_content := to_tsvector('english', COALESCE(NEW.title, '') || ' ' || COALESCE(NEW.content, ''));
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### TypeScript Interfaces
+
+```typescript
+interface EncryptedNotebook extends NotebookData {
+  is_encrypted: boolean;
+  encryption_salt?: string;
+  encryption_iv?: string;
+}
+
+interface EncryptedPage extends PageData {
+  is_encrypted: boolean;
+  encryption_salt?: string;
+  encryption_iv?: string;
+  encrypted_content?: string;
+}
+
+interface EncryptionMetadata {
+  salt: string;
+  iv: string;
+  ciphertext: string;
+}
+
+interface DecryptionRequest {
+  password: string;
+  salt: string;
+  iv: string;
+  ciphertext: string;
+}
+```
+
+### Encryption Service
+
+```typescript
+class EncryptionService {
+  private readonly ALGORITHM = 'AES-GCM';
+  private readonly KEY_LENGTH = 256;
+  private readonly ITERATIONS = 100000;
+  private readonly SALT_LENGTH = 16;
+  private readonly IV_LENGTH = 12;
+  
+  /**
+   * Encrypts content with a password
+   */
+  async encrypt(plaintext: string, password: string): Promise<EncryptionMetadata> {
+    // Generate random salt and IV
+    const salt = crypto.getRandomValues(new Uint8Array(this.SALT_LENGTH));
+    const iv = crypto.getRandomValues(new Uint8Array(this.IV_LENGTH));
+    
+    // Derive encryption key from password
+    const key = await this.deriveKey(password, salt);
+    
+    // Encrypt the content
+    const encoder = new TextEncoder();
+    const data = encoder.encode(plaintext);
+    
+    const ciphertext = await crypto.subtle.encrypt(
+      {
+        name: this.ALGORITHM,
+        iv: iv
+      },
+      key,
+      data
+    );
+    
+    // Convert to base64 for storage
+    return {
+      salt: this.arrayBufferToBase64(salt),
+      iv: this.arrayBufferToBase64(iv),
+      ciphertext: this.arrayBufferToBase64(ciphertext)
+    };
+  }
+  
+  /**
+   * Decrypts content with a password
+   */
+  async decrypt(request: DecryptionRequest): Promise<string> {
+    try {
+      // Convert from base64
+      const salt = this.base64ToArrayBuffer(request.salt);
+      const iv = this.base64ToArrayBuffer(request.iv);
+      const ciphertext = this.base64ToArrayBuffer(request.ciphertext);
+      
+      // Derive decryption key from password
+      const key = await this.deriveKey(request.password, new Uint8Array(salt));
+      
+      // Decrypt the content
+      const decrypted = await crypto.subtle.decrypt(
+        {
+          name: this.ALGORITHM,
+          iv: new Uint8Array(iv)
+        },
+        key,
+        ciphertext
+      );
+      
+      // Convert back to string
+      const decoder = new TextDecoder();
+      return decoder.decode(decrypted);
+      
+    } catch (error) {
+      throw new Error('Decryption failed. Incorrect password or corrupted data.');
+    }
+  }
+  
+  /**
+   * Derives an encryption key from a password using PBKDF2
+   */
+  private async deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+    const encoder = new TextEncoder();
+    const passwordBuffer = encoder.encode(password);
+    
+    // Import password as key material
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      passwordBuffer,
+      'PBKDF2',
+      false,
+      ['deriveBits', 'deriveKey']
+    );
+    
+    // Derive actual encryption key
+    return crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: salt,
+        iterations: this.ITERATIONS,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      {
+        name: this.ALGORITHM,
+        length: this.KEY_LENGTH
+      },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+  
+  /**
+   * Validates password strength
+   */
+  validatePassword(password: string): { valid: boolean; message?: string } {
+    if (password.length < 8) {
+      return { valid: false, message: 'Password must be at least 8 characters' };
+    }
+    if (password.length > 128) {
+      return { valid: false, message: 'Password must be less than 128 characters' };
+    }
+    return { valid: true };
+  }
+  
+  private arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+  
+  private base64ToArrayBuffer(base64: string): ArrayBuffer {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+}
+
+export const encryptionService = new EncryptionService();
+```
+
+### Encryption UI Components
+
+#### 1. Encryption Toggle Component
+
+```typescript
+interface EncryptionToggleProps {
+  isEncrypted: boolean;
+  onToggle: (enabled: boolean, password?: string) => Promise<void>;
+}
+
+const EncryptionToggle: React.FC<EncryptionToggleProps> = ({ isEncrypted, onToggle }) => {
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  
+  const handleToggle = (checked: boolean) => {
+    if (checked) {
+      setShowPasswordDialog(true);
+    } else {
+      onToggle(false);
+    }
+  };
+  
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <Switch checked={isEncrypted} onCheckedChange={handleToggle} />
+        <Label>Encrypt this content</Label>
+        {isEncrypted && <Lock className="h-4 w-4 text-green-600" />}
+      </div>
+      
+      {showPasswordDialog && (
+        <EncryptionPasswordDialog
+          onConfirm={async (password) => {
+            await onToggle(true, password);
+            setShowPasswordDialog(false);
+          }}
+          onCancel={() => setShowPasswordDialog(false)}
+        />
+      )}
+    </>
+  );
+};
+```
+
+#### 2. Password Dialog Component
+
+```typescript
+interface EncryptionPasswordDialogProps {
+  mode: 'set' | 'unlock';
+  onConfirm: (password: string) => Promise<void>;
+  onCancel: () => void;
+}
+
+const EncryptionPasswordDialog: React.FC<EncryptionPasswordDialogProps> = ({
+  mode,
+  onConfirm,
+  onCancel
+}) => {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  const handleSubmit = async () => {
+    setError('');
+    
+    // Validate password
+    const validation = encryptionService.validatePassword(password);
+    if (!validation.valid) {
+      setError(validation.message || 'Invalid password');
+      return;
+    }
+    
+    // Check password confirmation when setting
+    if (mode === 'set' && password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      await onConfirm(password);
+    } catch (err) {
+      setError(err.message || 'Operation failed');
+      setIsProcessing(false);
+    }
+  };
+  
+  return (
+    <Dialog open onOpenChange={onCancel}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {mode === 'set' ? 'Set Encryption Password' : 'Unlock Encrypted Content'}
+          </DialogTitle>
+          <DialogDescription>
+            {mode === 'set' 
+              ? 'Choose a strong password to encrypt this content. You will need this password to view the content later.'
+              : 'Enter the password to decrypt and view this content.'}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
+              autoFocus
+            />
+          </div>
+          
+          {mode === 'set' && (
+            <div>
+              <Label htmlFor="confirm">Confirm Password</Label>
+              <Input
+                id="confirm"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm password"
+              />
+            </div>
+          )}
+          
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          {mode === 'set' && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Warning: If you forget this password, you will not be able to recover the encrypted content.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel} disabled={isProcessing}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={isProcessing}>
+            {isProcessing ? 'Processing...' : mode === 'set' ? 'Encrypt' : 'Unlock'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+```
+
+### Notebook and Page Encryption Integration
+
+#### Notebook Encryption
+
+```typescript
+class NotebookEncryptionService {
+  async enableNotebookEncryption(
+    notebookId: string,
+    password: string
+  ): Promise<void> {
+    // Get all pages in the notebook
+    const { data: pages } = await supabase
+      .from('pages')
+      .select('*')
+      .eq('notebook_id', notebookId);
+    
+    if (!pages) return;
+    
+    // Encrypt each page
+    for (const page of pages) {
+      if (!page.is_encrypted) {
+        const encrypted = await encryptionService.encrypt(page.content, password);
+        
+        await supabase
+          .from('pages')
+          .update({
+            is_encrypted: true,
+            encrypted_content: encrypted.ciphertext,
+            encryption_salt: encrypted.salt,
+            encryption_iv: encrypted.iv,
+            content: '' // Clear plaintext
+          })
+          .eq('id', page.id);
+      }
+    }
+    
+    // Mark notebook as encrypted
+    const encrypted = await encryptionService.encrypt('', password);
+    await supabase
+      .from('notebooks')
+      .update({
+        is_encrypted: true,
+        encryption_salt: encrypted.salt,
+        encryption_iv: encrypted.iv
+      })
+      .eq('id', notebookId);
+  }
+  
+  async disableNotebookEncryption(
+    notebookId: string,
+    password: string
+  ): Promise<void> {
+    // Get notebook encryption metadata
+    const { data: notebook } = await supabase
+      .from('notebooks')
+      .select('*')
+      .eq('id', notebookId)
+      .single();
+    
+    if (!notebook?.is_encrypted) return;
+    
+    // Verify password by attempting to decrypt
+    try {
+      await encryptionService.decrypt({
+        password,
+        salt: notebook.encryption_salt!,
+        iv: notebook.encryption_iv!,
+        ciphertext: ''
+      });
+    } catch {
+      throw new Error('Incorrect password');
+    }
+    
+    // Get all encrypted pages
+    const { data: pages } = await supabase
+      .from('pages')
+      .select('*')
+      .eq('notebook_id', notebookId)
+      .eq('is_encrypted', true);
+    
+    if (!pages) return;
+    
+    // Decrypt each page
+    for (const page of pages) {
+      if (page.encrypted_content) {
+        const plaintext = await encryptionService.decrypt({
+          password,
+          salt: page.encryption_salt!,
+          iv: page.encryption_iv!,
+          ciphertext: page.encrypted_content
+        });
+        
+        await supabase
+          .from('pages')
+          .update({
+            is_encrypted: false,
+            content: plaintext,
+            encrypted_content: null,
+            encryption_salt: null,
+            encryption_iv: null
+          })
+          .eq('id', page.id);
+      }
+    }
+    
+    // Mark notebook as not encrypted
+    await supabase
+      .from('notebooks')
+      .update({
+        is_encrypted: false,
+        encryption_salt: null,
+        encryption_iv: null
+      })
+      .eq('id', notebookId);
+  }
+}
+```
+
+#### Page Encryption
+
+```typescript
+class PageEncryptionService {
+  async savePage(
+    pageId: string,
+    content: string,
+    isEncrypted: boolean,
+    password?: string
+  ): Promise<void> {
+    if (isEncrypted && password) {
+      // Encrypt content before saving
+      const encrypted = await encryptionService.encrypt(content, password);
+      
+      await supabase
+        .from('pages')
+        .update({
+          is_encrypted: true,
+          encrypted_content: encrypted.ciphertext,
+          encryption_salt: encrypted.salt,
+          encryption_iv: encrypted.iv,
+          content: '', // Clear plaintext
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', pageId);
+    } else {
+      // Save as plaintext
+      await supabase
+        .from('pages')
+        .update({
+          is_encrypted: false,
+          content: content,
+          encrypted_content: null,
+          encryption_salt: null,
+          encryption_iv: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', pageId);
+    }
+  }
+  
+  async loadPage(pageId: string, password?: string): Promise<string> {
+    const { data: page } = await supabase
+      .from('pages')
+      .select('*')
+      .eq('id', pageId)
+      .single();
+    
+    if (!page) throw new Error('Page not found');
+    
+    if (page.is_encrypted) {
+      if (!password) {
+        throw new Error('Password required for encrypted page');
+      }
+      
+      // Decrypt content
+      return await encryptionService.decrypt({
+        password,
+        salt: page.encryption_salt!,
+        iv: page.encryption_iv!,
+        ciphertext: page.encrypted_content!
+      });
+    }
+    
+    return page.content;
+  }
+}
+```
+
+### Password Management
+
+The application uses a session-based password cache to avoid repeatedly prompting users:
+
+```typescript
+class PasswordCacheService {
+  private cache = new Map<string, { password: string; expiresAt: number }>();
+  private readonly CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+  
+  cachePassword(entityId: string, password: string): void {
+    this.cache.set(entityId, {
+      password,
+      expiresAt: Date.now() + this.CACHE_DURATION
+    });
+  }
+  
+  getPassword(entityId: string): string | null {
+    const cached = this.cache.get(entityId);
+    
+    if (!cached) return null;
+    
+    if (Date.now() > cached.expiresAt) {
+      this.cache.delete(entityId);
+      return null;
+    }
+    
+    return cached.password;
+  }
+  
+  clearPassword(entityId: string): void {
+    this.cache.delete(entityId);
+  }
+  
+  clearAll(): void {
+    this.cache.clear();
+  }
+}
+
+export const passwordCache = new PasswordCacheService();
+```
+
+### Search Considerations
+
+Encrypted content cannot be searched using full-text search since it's stored as ciphertext. This is an intentional limitation that preserves the security guarantees of client-side encryption.
+
+#### Why Encrypted Content Cannot Be Searched
+
+1. **True Client-Side Encryption**: All encryption and decryption happens in the browser. The server never has access to plaintext content or encryption keys.
+2. **Ciphertext Storage**: Encrypted pages store content in the `encrypted_content` field as base64-encoded ciphertext, which is meaningless to search algorithms.
+3. **No Searchable Index**: The `searchable_content` field (used for PostgreSQL full-text search) is set to NULL for encrypted pages, preventing any indexing.
+4. **Security vs. Functionality Trade-off**: Making encrypted content searchable would require either:
+   - Storing plaintext or searchable metadata on the server (defeats encryption purpose)
+   - Using specialized searchable encryption schemes (complex, limited functionality, performance overhead)
+   - Client-side search after decrypting all content (slow, requires downloading all encrypted pages)
+
+#### How the Application Handles This
+
+1. **Automatic Exclusion**: Search queries automatically filter out encrypted pages using `WHERE is_encrypted = false`
+2. **Visual Indicators**: 
+   - Encrypted pages display a lock icon (🔒) in the page tree
+   - Encrypted notebooks show a lock badge in the notebook list
+   - Search results never include encrypted content
+3. **User Awareness**: When enabling encryption, users are warned that encrypted content will not be searchable
+4. **Page Titles**: Page titles remain unencrypted to allow navigation (users should avoid sensitive information in titles)
+
+#### Implementation Details
+
+```typescript
+// Search query excludes encrypted pages
+const searchPages = async (query: string, notebookId?: string) => {
+  let queryBuilder = supabase
+    .from('pages')
+    .select('*, notebooks(title)')
+    .eq('is_encrypted', false)  // Exclude encrypted pages
+    .textSearch('searchable_content', query, {
+      type: 'websearch',
+      config: 'english'
+    });
+  
+  if (notebookId) {
+    queryBuilder = queryBuilder.eq('notebook_id', notebookId);
+  }
+  
+  return await queryBuilder;
+};
+```
+
+```sql
+-- Database trigger ensures encrypted pages have no searchable content
+CREATE OR REPLACE FUNCTION update_searchable_content()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.is_encrypted THEN
+    -- Encrypted pages: no searchable content
+    NEW.searchable_content := NULL;
+  ELSE
+    -- Regular pages: full-text search index
+    NEW.searchable_content := to_tsvector('english', 
+      COALESCE(NEW.title, '') || ' ' || COALESCE(NEW.content, '')
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+#### User Experience Considerations
+
+1. **Clear Communication**: The UI clearly indicates which pages are encrypted and therefore not searchable
+2. **Selective Encryption**: Users can choose to encrypt only truly sensitive content, leaving other content searchable
+3. **Notebook-Level Awareness**: When encrypting an entire notebook, users are informed that all pages will become unsearchable
+4. **Manual Navigation**: Users can still navigate to encrypted pages through the page tree hierarchy
+
+#### Future Enhancements (Not in v1)
+
+1. **Client-Side Search**: Download and decrypt all encrypted pages in memory, then search locally (performance implications)
+2. **Selective Metadata**: Allow users to specify searchable keywords/tags that remain unencrypted
+3. **Hybrid Approach**: Encrypt content but keep titles and tags searchable (reduced security)
+4. **Search History**: Remember recently accessed encrypted pages for quick access
+
+#### Security Note
+
+This limitation is a feature, not a bug. Any system that claims to offer both server-side full-text search AND true end-to-end encryption is either:
+- Not truly end-to-end encrypted (server has access to keys or plaintext)
+- Using searchable encryption (complex, limited, slower)
+- Performing client-side search (requires downloading all data)
+
+Our approach prioritizes security and transparency: encrypted means encrypted, and users understand the trade-offs.
+
+### Export Considerations
+
+When exporting encrypted content, the system always decrypts before exporting:
+
+1. **Password Prompt**: When exporting encrypted notebooks or pages, prompt the user for the encryption password
+2. **Decryption**: Decrypt all encrypted content using the provided password
+3. **Plaintext Export**: Export the decrypted content as plaintext markdown files
+4. **Error Handling**: If the password is incorrect or decryption fails, display an error and cancel the export
+5. **Security**: Ensure decrypted content is only used for export and not persisted in plaintext
+
+This approach ensures that exported files are usable in other applications without requiring decryption tools, while still maintaining security by requiring the password at export time.
+
+### Security Considerations
+
+1. **Client-Side Only**: All encryption/decryption happens in the browser; server never sees plaintext or passwords
+2. **Strong Key Derivation**: PBKDF2 with 100,000 iterations prevents brute-force attacks
+3. **Unique IVs**: Each encryption uses a unique initialization vector
+4. **Password Validation**: Enforces minimum password requirements
+5. **No Password Recovery**: Passwords are never stored; lost passwords mean lost data
+6. **Memory Clearing**: Sensitive data is cleared from memory after use
+7. **Session Timeout**: Cached passwords expire after 30 minutes of inactivity
+
+### Encryption Correctness Properties
+
+Property 9: Encryption produces ciphertext
+*For any* plaintext content and valid password, encrypting the content should produce ciphertext that is different from the plaintext
+**Validates: Requirements 13.4**
+
+Property 10: Encryption round-trip preserves content
+*For any* plaintext content and password, encrypting then decrypting with the same password should return the original plaintext
+**Validates: Requirements 13.6**
+
+Property 11: Wrong password fails decryption
+*For any* encrypted content, attempting to decrypt with an incorrect password should fail and throw an error
+**Validates: Requirements 13.7**
+
+Property 12: Notebook encryption cascades to pages
+*For any* notebook with pages, enabling notebook encryption should result in all pages within that notebook being encrypted
+**Validates: Requirements 13.8**
+
+Property 13: Database never stores plaintext for encrypted content
+*For any* page marked as encrypted, the content field in the database should be empty and only encrypted_content should contain data
+**Validates: Requirements 13.10**
+
+Property 14: Page-specific encryption overrides notebook encryption
+*For any* page with individual encryption enabled, the page should use its own encryption password regardless of the notebook's encryption status
+**Validates: Requirements 13.9**
+
+This design provides a comprehensive foundation for building Mini Note with Supabase, leveraging PostgreSQL's powerful features like full-text search, Row Level Security, and real-time capabilities while maintaining a clean and scalable architecture. The addition of client-side encryption ensures that sensitive content remains secure even if the database is compromised, giving users full control over their data privacy.
