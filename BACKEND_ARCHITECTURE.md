@@ -1,6 +1,6 @@
 # Backend Architecture Overview
 
-Visual overview of the Supabase backend architecture for the Web Note App.
+Visual overview of the Supabase backend architecture for Mini Note.
 
 ## System Architecture
 

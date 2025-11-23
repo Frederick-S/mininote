@@ -1,6 +1,6 @@
 # Project Structure
 
-This document outlines the folder organization for the Web Note App.
+This document outlines the folder organization for Mini Note.
 
 ## Directory Structure
 

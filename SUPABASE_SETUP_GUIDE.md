@@ -1,6 +1,6 @@
 # Supabase Backend Setup Guide
 
-This guide walks you through setting up the complete Supabase backend for the Web Note App.
+This guide walks you through setting up the complete Supabase backend for Mini Note.
 
 ## Prerequisites
 

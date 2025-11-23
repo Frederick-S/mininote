@@ -1,6 +1,6 @@
 # Layout Components
 
-This directory contains the core navigation and layout components for the Web Note App.
+This directory contains the core navigation and layout components for Mini Note.
 
 ## Components
 

@@ -1,5 +1,5 @@
 -- ============================================
--- Supabase Database Setup for Web Note App
+-- Supabase Database Setup for Mini Note
 -- ============================================
 -- This script sets up the complete database schema, RLS policies,
 -- triggers, and storage configuration for the note-taking application.

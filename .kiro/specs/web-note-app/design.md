@@ -2,7 +2,7 @@
 
 ## Overview
 
-The web note application is a personal note-taking system built on Supabase that provides hierarchical organization of markdown-based content with rich editing capabilities. The application follows a modern serverless architecture using Supabase services for authentication, data storage, file management, and search functionality.
+Mini Note is a personal note-taking system built on Supabase that provides hierarchical organization of markdown-based content with rich editing capabilities. The application follows a modern serverless architecture using Supabase services for authentication, data storage, file management, and search functionality.
 
 ### Technology Stack
 
@@ -1696,4 +1696,4 @@ The import functionality relies on browser APIs for folder handling:
 3. **Parallel Uploads**: Assets are uploaded in parallel (with concurrency limit)
 4. **Error Recovery**: Failed uploads don't block the entire import process
 
-This design provides a comprehensive foundation for building the web note application with Supabase, leveraging PostgreSQL's powerful features like full-text search, Row Level Security, and real-time capabilities while maintaining a clean and scalable architecture.
+This design provides a comprehensive foundation for building Mini Note with Supabase, leveraging PostgreSQL's powerful features like full-text search, Row Level Security, and real-time capabilities while maintaining a clean and scalable architecture.

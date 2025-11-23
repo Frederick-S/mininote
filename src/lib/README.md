@@ -1,6 +1,6 @@
 # Database Library
 
-This directory contains the core database utilities and Supabase client configuration for the web note application.
+This directory contains the core database utilities and Supabase client configuration for Mini Note.
 
 ## Files
 

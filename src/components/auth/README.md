@@ -1,6 +1,6 @@
 # Authentication Components
 
-This directory contains all authentication-related components for the Web Note App.
+This directory contains all authentication-related components for Mini Note.
 
 ## Components
 

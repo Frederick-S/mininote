@@ -1,6 +1,6 @@
 # Notebook Management Components
 
-This directory contains components for managing notebooks in the Web Note App.
+This directory contains components for managing notebooks in Mini Note.
 
 ## Components
 

@@ -1,6 +1,6 @@
 # Search Components
 
-This directory contains the search UI components for the web note application.
+This directory contains the search UI components for Mini Note.
 
 ## Components
 
