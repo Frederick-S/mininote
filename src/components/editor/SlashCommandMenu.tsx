@@ -195,8 +195,11 @@ export const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) =
           'graph TD\n  A[Start] --> B[End]'
         );
         if (diagram) {
-          editor.chain().focus().deleteRange(range).run();
-          (editor.commands as any).insertMermaid(diagram);
+          editor.chain().focus().deleteRange(range).insertContent({
+            type: 'codeBlock',
+            attrs: { language: 'mermaid' },
+            content: [{ type: 'text', text: diagram }],
+          }).run();
         }
       },
       searchTerms: ['mermaid', 'diagram', 'flowchart', 'chart', 'graph'],

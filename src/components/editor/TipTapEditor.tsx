@@ -12,7 +12,6 @@ import { common, createLowlight } from 'lowlight';
 import { Markdown } from 'tiptap-markdown';
 import { MathExtension } from './extensions/MathExtension';
 import { BlockMathExtension } from './extensions/BlockMathExtension';
-import { MermaidExtension } from './extensions/MermaidExtension';
 import { SlashCommandExtension } from './extensions/SlashCommandExtension';
 import { CodeBlockWithLanguage } from './extensions/CodeBlockWithLanguage';
 import {
@@ -114,7 +113,6 @@ export function TipTapEditor({
       }),
       MathExtension,
       BlockMathExtension,
-      MermaidExtension,
       SlashCommandExtension,
     ],
     content,
@@ -357,7 +355,11 @@ export function TipTapEditor({
               'graph TD\n  A[Start] --> B[End]'
             );
             if (diagram) {
-              (editor.commands as any).insertMermaid(diagram);
+              editor.chain().focus().insertContent({
+                type: 'codeBlock',
+                attrs: { language: 'mermaid' },
+                content: [{ type: 'text', text: diagram }],
+              }).run();
             }
           }}
           title="Insert Mermaid Diagram"

@@ -1,8 +1,8 @@
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/react';
-import { useState } from 'react';
-import { ChevronDown, Copy, Check } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ChevronDown, Copy, Check, Edit, Eye } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -10,6 +10,14 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import mermaid from 'mermaid';
+
+// Initialize mermaid
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'default',
+  securityLevel: 'loose',
+});
 
 const LANGUAGES = [
     { value: 'javascript', label: 'JavaScript' },
@@ -37,19 +45,51 @@ const LANGUAGES = [
     { value: 'shell', label: 'Shell' },
     { value: 'powershell', label: 'PowerShell' },
     { value: 'dockerfile', label: 'Dockerfile' },
+    { value: 'mermaid', label: 'Mermaid' },
     { value: 'plaintext', label: 'Plain Text' },
 ];
 
 function CodeBlockComponent(props: any) {
     const [searchTerm, setSearchTerm] = useState('');
     const [copied, setCopied] = useState(false);
+    const [showCode, setShowCode] = useState(false);
+    const [mermaidError, setMermaidError] = useState<string | null>(null);
+    const mermaidRef = useRef<HTMLDivElement>(null);
     const language = props.node.attrs.language || 'plaintext';
+    const isMermaid = language === 'mermaid';
 
     const filteredLanguages = LANGUAGES.filter((lang) =>
         lang.label.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const currentLanguage = LANGUAGES.find((lang) => lang.value === language);
+
+    // Render Mermaid diagram
+    useEffect(() => {
+        if (isMermaid && !showCode && mermaidRef.current) {
+            const code = props.node.textContent;
+            console.log('Mermaid code to render:', code);
+            if (code && code.trim()) {
+                const renderDiagram = async () => {
+                    try {
+                        setMermaidError(null);
+                        const id = `mermaid-${Math.random().toString(36).substring(2, 11)}`;
+                        console.log('Rendering mermaid with id:', id);
+                        const { svg } = await mermaid.render(id, code.trim());
+                        if (mermaidRef.current) {
+                            mermaidRef.current.innerHTML = svg;
+                        }
+                    } catch (err) {
+                        console.error('Mermaid rendering error:', err);
+                        setMermaidError(`Error rendering diagram: ${err instanceof Error ? err.message : 'Unknown error'}`);
+                    }
+                };
+                renderDiagram();
+            } else {
+                setMermaidError('No diagram code provided');
+            }
+        }
+    }, [isMermaid, showCode, props.node.textContent]);
 
     const handleCopy = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -61,6 +101,55 @@ function CodeBlockComponent(props: any) {
         });
     };
 
+    // Render Mermaid diagram view
+    if (isMermaid && !showCode) {
+        return (
+            <NodeViewWrapper className="mermaid-block-wrapper relative">
+                <div className="border rounded-lg p-4 my-4 bg-muted/30 relative group">
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => setShowCode(true)}
+                            title="Show code"
+                        >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Edit
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={handleCopy}
+                            title={copied ? 'Copied!' : 'Copy code'}
+                        >
+                            {copied ? (
+                                <>
+                                    <Check className="h-3 w-3 mr-1" />
+                                    Copied
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="h-3 w-3 mr-1" />
+                                    Copy
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                    {mermaidError ? (
+                        <div className="text-red-500 text-sm">{mermaidError}</div>
+                    ) : (
+                        <div ref={mermaidRef} className="flex justify-center" />
+                    )}
+                </div>
+            </NodeViewWrapper>
+        );
+    }
+
+    // Render regular code block
     return (
         <NodeViewWrapper className="code-block-wrapper relative">
             <div className="flex items-center justify-between bg-gray-800 px-3 py-1 rounded-t-lg">
@@ -92,6 +181,9 @@ function CodeBlockComponent(props: any) {
                                 onClick={() => {
                                     props.updateAttributes({ language: lang.value });
                                     setSearchTerm('');
+                                    if (lang.value === 'mermaid') {
+                                        setShowCode(false);
+                                    }
                                 }}
                             >
                                 {lang.label}
@@ -102,26 +194,41 @@ function CodeBlockComponent(props: any) {
                         )}
                     </DropdownMenuContent>
                 </DropdownMenu>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-gray-300 hover:text-white hover:bg-gray-700"
-                    onClick={handleCopy}
-                    title={copied ? 'Copied!' : 'Copy code'}
-                >
-                    {copied ? (
-                        <>
-                            <Check className="h-3 w-3 mr-1" />
-                            Copied
-                        </>
-                    ) : (
-                        <>
-                            <Copy className="h-3 w-3 mr-1" />
-                            Copy
-                        </>
+                <div className="flex gap-1">
+                    {isMermaid && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-gray-300 hover:text-white hover:bg-gray-700"
+                            onClick={() => setShowCode(false)}
+                            title="Preview diagram"
+                        >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Preview
+                        </Button>
                     )}
-                </Button>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-gray-300 hover:text-white hover:bg-gray-700"
+                        onClick={handleCopy}
+                        title={copied ? 'Copied!' : 'Copy code'}
+                    >
+                        {copied ? (
+                            <>
+                                <Check className="h-3 w-3 mr-1" />
+                                Copied
+                            </>
+                        ) : (
+                            <>
+                                <Copy className="h-3 w-3 mr-1" />
+                                Copy
+                            </>
+                        )}
+                    </Button>
+                </div>
             </div>
             <pre className="rounded-t-none">
                 <NodeViewContent as="div">
