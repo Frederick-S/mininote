@@ -113,7 +113,7 @@ function App() {
         )}
 
         {/* Main Content */}
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto">
         {isPasswordReset ? (
           <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
             <ResetPasswordForm
